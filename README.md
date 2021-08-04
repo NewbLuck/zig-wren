@@ -10,7 +10,7 @@ This will probably change (eventually).
 
 ---
 
-Check `examples/example_build.zig` for an example of how to set up your project's build.zig, and `examples/all_the_things.zig` for sample embedding usage.
+Check `examples/example_build.zig` for an example of how to set up your project's build.zig, and `examples/all_the_things.zig` for sample embedding usage (kind of messy as it is my current figure-stuff-out scratchpad).
 Aside from the above, their [embedding guide](https://wren.io/embedding/) has everything else you should need to get started integrating Wren into your Zig project.
 
 ---
