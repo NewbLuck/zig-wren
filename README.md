@@ -6,6 +6,8 @@ This runs off of the amalgamated Wren source because I was too lazy to add all t
 
 https://wren.io/getting-started.html#including-the-code-in-your-project
 
+This will probably change (eventually).
+
 ---
 
 Check `examples/example_build.zig` for an example of how to set up your project's build.zig, and `examples/all_the_things.zig` for sample embedding usage.
