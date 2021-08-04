@@ -1,0 +1,3 @@
+# Build directories
+zig-out/
+zig-cache/ 
