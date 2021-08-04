@@ -13,7 +13,7 @@ pub extern fn wrenCall(vm: ?*VM, method: ?*Handle) InterpretResult;
 pub extern fn wrenReleaseHandle(vm: ?*VM, handle: ?*Handle) void;
 pub extern fn wrenGetSlotCount(vm: ?*VM) c_int;
 pub extern fn wrenEnsureSlots(vm: ?*VM, numSlots: c_int) void;
-pub extern fn wrenGetSlotType(vm: ?*VM, slot: c_int) WrenType;
+pub extern fn wrenGetSlotType(vm: ?*VM, slot: c_int) Type;
 pub extern fn wrenGetSlotBool(vm: ?*VM, slot: c_int) bool;
 pub extern fn wrenGetSlotBytes(vm: ?*VM, slot: c_int, length: [*c]c_int) [*c]const u8;
 pub extern fn wrenGetSlotDouble(vm: ?*VM, slot: c_int) f64;
