@@ -108,7 +108,7 @@ pub fn main() anyerror!void {
     std.debug.print("\n=== Imports ===\n",.{});
     runCode(vm,"main",
         \\ System.print("start import")
-        \\ import "deps/wren/test"
+        \\ import "test"
         \\ System.print("end import")
     );
 
