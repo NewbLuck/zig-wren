@@ -1,5 +1,5 @@
 const std = @import("std");
-const wrenBuild = @import("deps/wren/build.zig");
+const wrenBuild = @import("deps/zig-wren/build.zig");
 
 pub fn build(b: *std.build.Builder) void {
     // Standard target options allows the person running `zig build` to choose
