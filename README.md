@@ -2,7 +2,7 @@
 A basic wrapper around Wren.
 
 Make sure to pull with --recursive to get Wren as well.
-This runs off of the amalgamated of the Wren source because I was too lazy to add all the C files manually to the build, so run the amalgamation utility as described below first.
+This runs off of the amalgamated Wren source because I was too lazy to add all the C files manually to the build, so run the amalgamation utility as described below first.
 
 https://wren.io/getting-started.html#including-the-code-in-your-project
 
