@@ -4,6 +4,10 @@ fn getRelativePath() []const u8 {
     comptime var src: std.builtin.SourceLocation = @src();
     return std.fs.path.dirname(src.file).? ++ std.fs.path.sep_str;
 }
+fn getSrcPath() []const u8 {
+    comptime var src: std.builtin.SourceLocation = @src();
+    return std.fs.path.dirname(src.file).? ++ std.fs.path.sep_str ++ "src" ++ std.fs.path.sep_str;
+}
 
 pub fn build(b: *std.build.Builder) void {
     // Standard release options allow the person running `zig build` to select
@@ -46,6 +50,6 @@ pub fn getLib(b: *std.build.Builder, target: std.build.Target) *std.build.LibExe
 }
 
 pub fn getPackage() std.build.Pkg {
-    comptime var path = getRelativePath();
+    comptime var path = getSrcPath();
     return .{ .name = "wren", .path = std.build.FileSource{ .path = path ++ "wren.zig" } };
 }
