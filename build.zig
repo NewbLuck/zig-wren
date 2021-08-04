@@ -6,7 +6,7 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
-    const exe = b.addExecutable("wren", "src/main.zig");
+    const exe = b.addExecutable("wren", "example/all_the_things.zig");
     exe.setBuildMode(mode);
     deps.addAllTo(exe);
     exe.install();
