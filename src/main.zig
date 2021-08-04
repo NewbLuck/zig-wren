@@ -1,10 +1,14 @@
 const std = @import("std");
-const testing = std.testing;
+const wren = @import("wren");
 
-export fn add(a: i32, b: i32) i32 {
-    return a + b;
+pub fn main() !void {
+    std.log.info("{s}", .{wren.VERSION_STRING});
+
+    refAllDecls(wren);
 }
 
-test "basic add functionality" {
-    try testing.expect(add(3, 7) == 10);
+pub fn refAllDecls(comptime T: type) void {
+    inline for (std.meta.declarations(T)) |decl| {
+        _ = decl;
+    }
 }

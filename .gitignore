@@ -1,3 +1,5 @@
 # Build directories
 zig-out/
 zig-cache/ 
+.zigmod
+deps.zig
