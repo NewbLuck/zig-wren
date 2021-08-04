@@ -14,7 +14,8 @@ Check examples/example_build.zig for an example of how to set up your project's 
 
 Still needs to be majorly cleaned up, but it works well enough to go through all their examples.
 
-As a rule, all things that were named Wren[Thing] or wren[Thing] are now wren.[thing].  
+As a rule, all things that were named Wren[Thing] or wren[Thing] are now wren.[Thing] or wren.[thing] depending on if it was a type or function.
+The constants are still screaming snake case, but the leading WREN_ got chopped off and they are living in the main wren struct.
 
 The optional add-ons for random and meta /should/ be included and working, haven't tested them yet so YMMV.
 
