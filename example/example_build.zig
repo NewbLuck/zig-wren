@@ -1,5 +1,7 @@
+// An example of how to include the library without using zigmod.
+// See lib.zig for more notes.
 const std = @import("std");
-const wrenBuild = @import("deps/zig-wren/build.zig");
+const wrenBuild = @import("deps/zig-wren/lib.zig");
 
 pub fn build(b: *std.build.Builder) void {
     // Standard target options allows the person running `zig build` to choose
