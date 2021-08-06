@@ -108,7 +108,6 @@ pub fn main() anyerror!void {
         \\ }
     );
 
-    // Manually calling class methods from Zig
     // Get the method signature handle, cache these for use
     var mhandle:?*wren.Handle = wren.makeCallHandle(vm,"doubleUp(_)");
     defer wren.releaseHandle(vm,mhandle);
@@ -191,10 +190,11 @@ pub fn main() anyerror!void {
     );
 
     // Using additional VMs
-
     // Create a new-new VM from our old config
     var vm2 = wren.newVM(&config);
     defer wren.freeVM(vm2);
+
+    // Same module, name, and signature, different VM and Zig function
     try wren.foreign.registerMethod(vm2,"main","Math","add(_,_)",true,mathAddSec);
 
     std.debug.print("\n=== Two VMs with different backing methods ===\n",.{});
@@ -202,6 +202,7 @@ pub fn main() anyerror!void {
     try wren.util.run(vm,"main",
         \\ System.print(Math.add(3,5))
     );
+
     // New, same Wren def but different Zig binding
     try wren.util.run(vm2,"main",
         \\ class Math {
@@ -211,4 +212,6 @@ pub fn main() anyerror!void {
     );
 
     std.debug.print("\n=== Examples Done ===\n",.{});
+    
+    // defer unloads the VMs, this runs finalize on Zig-bound classes
 }
