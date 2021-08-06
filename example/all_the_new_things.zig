@@ -102,11 +102,11 @@ pub fn main() anyerror!void {
     );
 
     // Manually calling class methods from Zig
-    // Get the method signature handle
+    // Get the method signature handle, cache these for use
     var mhandle:?*wren.Handle = wren.makeCallHandle(vm,"doubleUp(_)");
     defer wren.releaseHandle(vm,mhandle);
 
-    // Get a handle to the class that owns the method
+    // Get a handle to the class that owns the method, also cache these for use
     wren.ensureSlots(vm, 2);
     wren.getVariable(vm, "main", "TestClass", 0);
     var testClass:?*wren.Handle = wren.getSlotHandle(vm, 0);
@@ -150,5 +150,39 @@ pub fn main() anyerror!void {
         \\ import "example/test"
         \\ System.print("end import")
     );
+
+    // Test the optional 'Meta' module
+    std.debug.print("\n=== Meta module ===\n",.{});
+    try wren.util.run(vm,"main",
+        \\ import "meta" for Meta
+        \\
+        \\ var a = 2
+        \\ var b = 3
+        \\ var source = """
+        \\   var c = a * b
+        \\   System.print(c)
+        \\ """
+        \\ Meta.eval(source)
+    );
+
+    // Test the optional 'Random' module
+    std.debug.print("\n=== Random module ===\n",.{});
+    try wren.util.run(vm,"main",
+        \\ import "random" for Random
+        \\ 
+        \\ var random = Random.new(12345)
+        \\ 
+        \\ var below = 0
+        \\ for (i in 1..1000) {
+        \\   var n = random.int()
+        \\   if (n < 2147483648) below = below + 1
+        \\ }
+        \\ 
+        \\ System.print(below > 450) // expect: true
+        \\ System.print(below < 550) // expect: true
+    );
+
+    std.debug.print("\n=== Examples Done ===\n",.{});
+
 
 }

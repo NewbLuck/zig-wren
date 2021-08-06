@@ -10,7 +10,12 @@ pub fn foreignMethodFn(
     isStatic:bool,
     signature:CString
 ) callconv(.C) ForeignMethodFn {
-    _=vm;
+    if(util.matches(module,"meta")) {
+        return metaBindForeignMethod(vm,className,isStatic,signature);
+    }
+    if(util.matches(module,"random")) {
+        return randomBindForeignMethod(vm,className,isStatic,signature);
+    }
     return foreign.findMethod(
         std.mem.span(module),
         std.mem.span(className),
@@ -25,19 +30,10 @@ pub fn bindForeignClassFn (
     module:CString, 
     className:CString
 ) callconv(.C) ForeignClassMethods {
-    std.debug.print(" [+] Foreign start\n",.{});
-    _=vm;
-    //if (wren.util.matches(module, "main")) {
-    //    if (wren.util.matches(className, "Point")) {
-    //        std.debug.print(" [+] Foreign bind\n",.{});
-    //        return .{
-    //            .allocate = pointAllocate,
-    //            .finalize = pointFinalize,
-    //        };
-    //    }
-    //}
-    return foreign.findClass(std.mem.span(module),std.mem.span(className)) catch |err| {
-        std.debug.print(" [+] Foreign BIND FAIL - {s}\n",.{err});
+    if(util.matches(module,"random")) {
+        return randomBindForeignClass(vm,module,className);
+    }
+    return foreign.findClass(std.mem.span(module),std.mem.span(className)) catch {
         return .{
             .allocate = null,
             .finalize = null
@@ -48,6 +44,12 @@ pub fn bindForeignClassFn (
 /// Should be bound to config.loadModuleFn
 pub fn loadModuleFn(vm:?*VM,name:CString) callconv(.C) LoadModuleResult {
     _=vm;
+    if(util.matches(name,"meta")) {
+        return .{.source = metaSource(), .onComplete = null, .userData = null};
+    }
+    if(util.matches(name,"random")) {
+        return .{.source = randomSource(), .onComplete = null, .userData = null};
+    }
     var src = util.loadWrenSourceFile(data.allocator,std.mem.span(name)) catch unreachable;
     return .{
         .source = src,
@@ -86,6 +88,6 @@ pub fn errorFn(vm:?*VM, err_type:ErrorType, module:CString, line:c_int, msg:CStr
         std.debug.print("{s}:{}\n",.{mod,line});
     } else std.debug.print("{s}:{}\n",.{"[null]",line});
     if(msg) |mg| {
-        std.debug.print("  {s}\n",.{mg});
-    } else std.debug.print("  {s}\n",.{"[null]"});
+        std.debug.print(">> {s}\n",.{mg});
+    } else std.debug.print(">> {s}\n",.{"[null]"});
 }

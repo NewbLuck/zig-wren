@@ -31,9 +31,9 @@ pub fn findMethod (
     //       point is.
     for(data.foreign_method_lookup.items) |item| {
         if(std.mem.eql(u8,item.module,module) and
-        std.mem.eql(u8,item.className,className) and
-        std.mem.eql(u8,item.signature,signature) and
-        item.isStatic == isStatic) {
+           std.mem.eql(u8,item.className,className) and
+           std.mem.eql(u8,item.signature,signature) and
+           item.isStatic == isStatic) {
             return item.ptr;  
         }
     }
