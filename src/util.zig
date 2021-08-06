@@ -37,13 +37,16 @@ pub fn loadWrenSourceFile (allocator:*std.mem.Allocator,path:[]const u8) !CStrin
     return rval;
 }
 
-
 pub fn run (vm:?*VM,module:CString,code:CString) !void {
-    var call_res:InterpretResult = interpret(vm,module,code);
+    var call_res = @intToEnum(ResType,interpret(vm,module,code));
     switch (call_res) {
-        RESULT_COMPILE_ERROR => return error.CompileError,
-        RESULT_RUNTIME_ERROR => return error.RuntimeError,
-        RESULT_SUCCESS => return,
-        else => return error.UnexpectedResult,
+        .compile_error => return error.CompileError,
+        .runtime_error => return error.RuntimeError,
+        .success => return,
+        //else => return error.UnexpectedResult,
     }
-}    
+}
+
+pub fn slotType(vm:?*VM,slot:i32) DataType {
+    return @intToEnum(DataType,getSlotType(vm,slot));
+}

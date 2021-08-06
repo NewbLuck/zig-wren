@@ -122,7 +122,8 @@ pub fn main() anyerror!void {
     
     // Call the method 
     var cres:wren.InterpretResult = wren.call(vm,mhandle);
-    _=cres;
+    _=cres; // 0/1/2 = Success/CompileFail/RuntimeFail
+    std.debug.print("Return Type: {s}\n",.{wren.util.slotType(vm,0)});
 
     // Cast the result back to an int
     needs_adding = @floatToInt(usize,wren.getSlotDouble(vm,0));

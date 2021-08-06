@@ -136,6 +136,29 @@ pub const ForeignClass = struct {
 pub const AllocateFnSig = (?fn (?*VM) callconv(.C) void);
 pub const FinalizeFnSig = (?fn (?*c_void) callconv(.C) void);
 
+pub const DataType = enum(u32) {
+    wren_bool = 0,
+    wren_num = 1,
+    wren_foreign = 2,
+    wren_list = 3,
+    wren_map = 4,
+    wren_null = 5,
+    wren_string = 6,
+    wren_unknown = 7,
+};
+
+pub const ResType = enum(u32) {
+    success = 0,
+    compile_error = 1,
+    runtime_error = 2,
+};
+
+pub const ErrType = enum(u32) {
+    compile = 0,
+    runtime = 1,
+    stack_trace = 2,
+};
+
 //////////////////////////////////////////////////////////////////////////////
 
 pub fn init(allocator:*std.mem.Allocator) void {

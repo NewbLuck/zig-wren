@@ -77,11 +77,10 @@ pub fn writeFn(vm:?*VM, text:CString) callconv(.C) void {
 /// Should be bound to config.errorFn
 pub fn errorFn(vm:?*VM, err_type:ErrorType, module:CString, line:c_int, msg:CString) callconv(.C) void {
     _=vm;
-    var err_desc = switch(err_type) {
-        ERROR_COMPILE => "Compile Error",
-        ERROR_RUNTIME => "Runtime Error",
-        ERROR_STACK_TRACE => "Stack Trace",
-        else => unreachable,
+    var err_desc = switch(@intToEnum(ErrType,err_type)) {
+        .compile => "Compile Error",
+        .runtime => "Runtime Error",
+        .stack_trace => "Stack Trace",
     };
     std.debug.print("{s} @ ",.{err_desc});
     if(module) |mod| {
