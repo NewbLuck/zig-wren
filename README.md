@@ -52,7 +52,9 @@ const wren = @import("wren");
 ```
 and you are ready to go!
 
-Check `examples/all_the_new_things.zig` for usage (kind of messy).  Almost every feature is implemented in that file.  There is also `examples/all_the_old_things.zig` which is the original implementation, it shows how to use it in a lower-level manner.
+Check `examples/all_the_new_things.zig` for usage (kind of messy).  Almost every feature is implemented in that file.  Please not that you can only have one VM at a time with the Zigified API, this will eventually be resolved (mainly due to a single cache for class and method lookups across any VMs).
+There is also `examples/all_the_old_things.zig` which is the original implementation, it shows how to use it in a lower-level manner.  You should be able to have multiple VMs at the same time this way.
+
 Aside from the above files, Wren's [embedding guide](https://wren.io/embedding/) has everything else you should need to get started integrating Wren into your Zig project.
 
 Everything has been tucked into the main wren struct.  As a rule of thumb, replace the initial `wren`, `Wren`, or `WREN_` in the original library names with `wren.` to use them.
