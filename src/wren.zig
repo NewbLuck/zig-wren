@@ -3,6 +3,7 @@ const std = @import("std");
 const c = @import("c.zig");
 const ext = @import("externs.zig");
 const data = @import("data.zig");
+const HashedArrayList = @import("libs/hashed_array_list.zig").HashedArrayList;
 
 // Public includes
 /// Utilities to make life easier
@@ -163,11 +164,11 @@ pub const ErrType = enum(u32) {
 
 pub fn init(allocator:*std.mem.Allocator) void {
     data.allocator = allocator;
-    data.foreign_method_lookup = std.ArrayList(ForeignMethod).init(data.allocator);
-    data.foreign_class_lookup = std.ArrayList(ForeignClass).init(data.allocator);
+    data.method_lookup = HashedArrayList(usize,ForeignMethod).init(data.allocator);
+    data.class_lookup = HashedArrayList(usize,ForeignClass).init(data.allocator);
 }
 
 pub fn deinit() void {
-    data.foreign_method_lookup.deinit();
-    data.foreign_class_lookup.deinit();
+    data.method_lookup.deinit();
+    data.class_lookup.deinit();
 }

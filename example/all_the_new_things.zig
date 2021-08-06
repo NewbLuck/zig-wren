@@ -45,6 +45,13 @@ pub fn mathAdd (vm:?*wren.VM) callconv(.C) void {
     var b:f64 = wren.getSlotDouble(vm, 2);
     wren.setSlotDouble(vm, 0, a + b);
 }
+// A function we will call from Wren
+pub fn mathAddSec (vm:?*wren.VM) callconv(.C) void {
+    var a:f64 = wren.getSlotDouble(vm, 1);
+    var b:f64 = wren.getSlotDouble(vm, 2);
+    wren.setSlotDouble(vm, 0, a + b + b + a);
+}
+
 
 pub fn main() anyerror!void {
     // Initialize the data structures for the wrapper
@@ -55,16 +62,16 @@ pub fn main() anyerror!void {
     var config:wren.Configuration = undefined;
     wren.util.initDefaultConfig(&config);
 
-    // Register our foreign methods
-    wren.foreign.registerMethod("main","Math","add(_,_)",true,mathAdd);
-    wren.foreign.registerMethod("main","Point","setSize(_)",false,Point.setSize);
-
-    // Register our foreign classes
-    wren.foreign.registerClass("main","Point",pointAllocate,pointFinalize);
-
     // Create a new VM from our config we generated previously
     var vm = wren.newVM(&config);
     defer wren.freeVM(vm);
+
+    // Register our foreign methods
+    try wren.foreign.registerMethod(vm,"main","Math","add(_,_)",true,mathAdd);
+    try wren.foreign.registerMethod(vm,"main","Point","setSize(_)",false,Point.setSize);
+
+    // Register our foreign class
+    try wren.foreign.registerClass(vm,"main","Point",pointAllocate,pointFinalize);
 
     // Interpret code in the "main" module
     std.debug.print("\n=== Basic Test ===\n",.{});
@@ -183,7 +190,25 @@ pub fn main() anyerror!void {
         \\ System.print(below < 550) // expect: true
     );
 
+    // Using additional VMs
+
+    // Create a new-new VM from our old config
+    var vm2 = wren.newVM(&config);
+    defer wren.freeVM(vm2);
+    try wren.foreign.registerMethod(vm2,"main","Math","add(_,_)",true,mathAddSec);
+
+    std.debug.print("\n=== Two VMs with different backing methods ===\n",.{});
+    // Original, already defined
+    try wren.util.run(vm,"main",
+        \\ System.print(Math.add(3,5))
+    );
+    // New, same Wren def but different Zig binding
+    try wren.util.run(vm2,"main",
+        \\ class Math {
+        \\     foreign static add(a, b)
+        \\ }
+        \\ System.print(Math.add(3,5))
+    );
+
     std.debug.print("\n=== Examples Done ===\n",.{});
-
-
 }

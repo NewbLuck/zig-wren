@@ -17,6 +17,7 @@ pub fn foreignMethodFn(
         return randomBindForeignMethod(vm,className,isStatic,signature);
     }
     return foreign.findMethod(
+        vm,
         std.mem.span(module),
         std.mem.span(className),
         std.mem.span(signature),
@@ -33,7 +34,7 @@ pub fn bindForeignClassFn (
     if(util.matches(module,"random")) {
         return randomBindForeignClass(vm,module,className);
     }
-    return foreign.findClass(std.mem.span(module),std.mem.span(className)) catch {
+    return foreign.findClass(vm,std.mem.span(module),std.mem.span(className)) catch {
         return .{
             .allocate = null,
             .finalize = null
