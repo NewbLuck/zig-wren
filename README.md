@@ -4,7 +4,7 @@ A basic wrapper around [Wren](https://wren.io/).
 This is still **VERY MUCH** a WIP, it's not much more than an implementation and renaming at the moment.
 This will eventually get an optional Zigification, I will try to leave the C-style code to prevent breaking changes.
 
-Note: The optional add-ons for random and meta *should* be included and working, haven't tested them yet so YMMV.
+Note: The optional add-ons for random and meta are included and working (from limited testing).
 
 ---
 
