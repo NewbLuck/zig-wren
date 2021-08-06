@@ -51,7 +51,7 @@ pub fn main() anyerror!void {
     wren.init(alloc);
     defer wren.deinit();
 
-    // Set up a VM configuration using the supplied defaults
+    // Set up a VM configuration using the supplied default bindings
     var config:wren.Configuration = undefined;
     wren.util.initDefaultConfig(&config);
 
