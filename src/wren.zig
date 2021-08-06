@@ -1,6 +1,19 @@
+// Private includes
 const std = @import("std");
 const c = @import("c.zig");
 const ext = @import("externs.zig");
+const data = @import("data.zig");
+
+// Public includes
+/// Utilities to make life easier
+pub const util = @import("util.zig");
+/// A set of default bindings for the Wren configuration that provide basic functionality
+pub const bindings = @import("bindings.zig");
+pub const foreign = @import("foreign.zig");
+
+// Convenience Signatures
+pub const CString = [*c]const u8;
+pub const MethodFnSig = (?fn (?*VM) callconv(.C) void);
 
 // Version
 pub const VERSION_MAJOR = c.WREN_VERSION_MAJOR;
@@ -104,32 +117,34 @@ pub const randomSource = ext.wrenRandomSource;
 pub const randomBindForeignClass = ext.wrenRandomBindForeignClass;
 pub const randomBindForeignMethod = ext.wrenRandomBindForeignMethod;
 
-pub const util = struct{
+//////////////////////////////////////////////////////////////////////////////
 
-    /// Tests if a c string matches a zig string
-    pub fn matches (cstr:[*c]const u8,str:[]const u8) bool {
-        return std.mem.eql(u8,std.mem.span(cstr),str);
-    }
-
-    /// Loads a Wren source file based on the current working path
-    /// Appends '.wren' onto the end of the given path
-    /// Caller must deallocate file contents?
-    pub fn loadWrenSourceFile (allocator:*std.mem.Allocator,path:[]const u8) ![*c]const u8 {
-        const file_size_limit:usize = 1024 * 1024 * 2; // 2Mb, should be pretty reasonable
-
-        const c_dir = std.fs.cwd();
-        const fpath = std.mem.concat(allocator,u8,
-            &[_][]const u8{std.mem.span(path),".wren"[0..]}
-        ) catch unreachable;
-        defer allocator.free(fpath);
-
-        const cpath = c_dir.realpathAlloc(allocator,".") catch unreachable;
-        defer allocator.free(cpath);
-
-        std.debug.print("Loading module: {s} from location {s}\n",.{fpath,cpath});
-        const file_contents = try c_dir.readFileAlloc(allocator,fpath,file_size_limit);
-
-        const rval = @ptrCast([*c]const u8,file_contents);
-        return rval;
-    }
+pub const ForeignMethod = struct {
+    module:[]const u8,
+    className:[]const u8,
+    signature:[]const u8,
+    isStatic:bool,
+    ptr:ForeignMethodFn,
 };
+
+pub const ForeignClass = struct {
+    module:[]const u8,
+    className:[]const u8,
+    methods:ForeignClassMethods,
+};
+
+pub const AllocateFnSig = (?fn (?*VM) callconv(.C) void);
+pub const FinalizeFnSig = (?fn (?*c_void) callconv(.C) void);
+
+//////////////////////////////////////////////////////////////////////////////
+
+pub fn init(allocator:*std.mem.Allocator) void {
+    data.allocator = allocator;
+    data.foreign_method_lookup = std.ArrayList(ForeignMethod).init(data.allocator);
+    data.foreign_class_lookup = std.ArrayList(ForeignClass).init(data.allocator);
+}
+
+pub fn deinit() void {
+    data.foreign_method_lookup.deinit();
+    data.foreign_class_lookup.deinit();
+}
