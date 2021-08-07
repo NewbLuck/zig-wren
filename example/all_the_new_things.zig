@@ -63,7 +63,7 @@ pub fn main() anyerror!void {
     wren.util.initDefaultConfig(&config);
 
     // Create a new VM from our config we generated previously
-    var vm = wren.newVM(&config);
+    const vm = wren.newVM(&config);
     defer wren.freeVM(vm);
 
     // Register our foreign methods
@@ -108,31 +108,12 @@ pub fn main() anyerror!void {
         \\ }
     );
 
-    // Get the method signature handle, cache these for use
-    var mhandle:?*wren.Handle = wren.makeCallHandle(vm,"doubleUp(_)");
-    defer wren.releaseHandle(vm,mhandle);
-
-    // Get a handle to the class that owns the method, also cache these for use
-    wren.ensureSlots(vm, 2);
-    wren.getVariable(vm, "main", "TestClass", 0);
-    var testClass:?*wren.Handle = wren.getSlotHandle(vm, 0);
-    defer wren.releaseHandle(vm,testClass);
-
-    // Set up local data
     var needs_adding:usize = 41;
     std.debug.print("Before Call: {}\n",.{needs_adding});
-
-    // Load the slots with the receiver (class) and parameters
-    wren.setSlotHandle(vm, 0, testClass);
-    wren.setSlotDouble(vm, 1, @intToFloat(f64,needs_adding));
-    
-    // Call the method 
-    var cres:wren.InterpretResult = wren.call(vm,mhandle);
-    _=cres; // 0/1/2 = Success/CompileFail/RuntimeFail
-    std.debug.print("Return Type: {s}\n",.{wren.util.slotType(vm,0)});
-
-    // Cast the result back to an int
-    needs_adding = @floatToInt(usize,wren.getSlotDouble(vm,0));
+    // (module, class, method sig, arg types tuple, return type)
+    // TODO: Only works with int and float currently, add bool and string next
+    var wm = try wren.MethodCallHandle("main","TestClass","doubleUp(_)",.{usize},usize).init(vm);
+    needs_adding = try wm.callMethod(.{needs_adding});
     std.debug.print("Call result: {}\n",.{needs_adding});
 
     // Foreign classes in Wren defined in Zig

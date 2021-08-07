@@ -172,3 +172,76 @@ pub fn deinit() void {
     data.method_lookup.deinit();
     data.class_lookup.deinit();
 }
+
+//////////////////////////////////////////////////////////////////////////////
+
+pub fn MethodCallHandle(
+    module:[*c]const u8,
+    className:[*c]const u8,
+    signature:[*c]const u8,
+    arg_types:anytype,
+    ret_type:anytype
+) type {
+    return struct {
+        const Self = @This();
+        
+        vm:?*VM = undefined,
+        method_sig:?*Handle = undefined,
+        class_handle:?*Handle = undefined,
+        slots:u8 = 0,
+
+        pub fn init (vm:?*VM) !Self {
+            var sig = makeCallHandle(vm,signature);
+            if(sig == null) {
+                return error.InvalidSignature;
+            }            
+
+            ensureSlots(vm, 1);
+            getVariable(vm, module, className, 0);
+            var hnd = getSlotHandle(vm, 0);
+            if(hnd == null) {
+                return error.InvalidClass;
+            }
+
+            return Self {
+                .vm = vm,
+                .method_sig = sig,
+                .class_handle = hnd,
+                .slots = arg_types.len + 1
+            };
+        }
+
+        pub fn callMethod (self:*Self, args:anytype) !ret_type {
+            ensureSlots(self.vm, self.slots);
+            setSlotHandle(self.vm, 0, self.class_handle);
+
+            inline for(arg_types) |v,i| {
+                switch(@typeInfo(v)) {
+                    .Int => setSlotDouble(self.vm, i + 1, @intToFloat(f64,args[i])),
+                    .Float => setSlotDouble(self.vm, i + 1, @floatCast(f64,args[i])),
+                    // .Array / strings ?
+                    // .Void
+                    else => return error.UnsupportedParameterType,
+                }
+            } 
+        
+            var cres:InterpretResult = call(self.vm,self.method_sig);
+            switch(@intToEnum(ResType,cres)) {
+                .compile_error => return error.CompileError,
+                .runtime_error => return error.RuntimeError,
+                else => {
+                    if(ret_type == void) return;
+                    switch(@typeInfo(ret_type)) {
+                        .Int => return @floatToInt(ret_type,getSlotDouble(self.vm,0)),
+                        .Float => return @floatCast(ret_type,getSlotDouble(self.vm,0)),
+                        // .Array / Strings ?
+                        else => return error.UnsupportedReturnType,
+                    }
+                },
+            }
+
+        }
+
+    };
+
+}
