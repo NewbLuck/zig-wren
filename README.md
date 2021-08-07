@@ -1,8 +1,8 @@
 # zig-wren 
 
 A basic wrapper around [Wren](https://wren.io/).
-This is still **VERY MUCH** a WIP, it's not much more than an implementation and renaming at the moment.
-This will eventually get an optional Zigification, I will try to leave the C-style code to prevent breaking changes.
+
+This is still a WIP.  Currently it provides a low-to-mid-level wrap around the Wren bindings, as well as exposes the C api directly for advanced usage.
 
 Note: The optional add-ons for random and meta are included and working (from limited testing).
 
