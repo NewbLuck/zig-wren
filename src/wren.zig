@@ -211,6 +211,11 @@ pub fn MethodCallHandle(
             };
         }
 
+        pub fn deinit (self:*Self) void {
+            releaseHandle(self.vm,self.method_sig);
+            releaseHandle(self.vm,self.class_handle);
+        }
+
         pub fn callMethod (self:*Self, args:anytype) !ret_type {
             ensureSlots(self.vm, self.slots);
             setSlotHandle(self.vm, 0, self.class_handle);

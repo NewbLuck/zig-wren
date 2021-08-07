@@ -113,6 +113,7 @@ pub fn main() anyerror!void {
     // (module, class, method sig, arg types tuple, return type)
     // TODO: Only works with int and float currently, add bool and string next
     var wm = try wren.MethodCallHandle("main","TestClass","doubleUp(_)",.{usize},usize).init(vm);
+    defer wm.deinit();
     needs_adding = try wm.callMethod(.{needs_adding});
     std.debug.print("Call result: {}\n",.{needs_adding});
 
