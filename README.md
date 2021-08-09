@@ -1,4 +1,4 @@
-# zig-wren 
+# zig-wren <img align="right" src="zig-wren.png">
 
 A basic wrapper around [Wren](https://wren.io/).
 
