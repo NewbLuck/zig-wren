@@ -176,11 +176,11 @@ pub fn deinit() void {
 //////////////////////////////////////////////////////////////////////////////
 
 pub fn MethodCallHandle(
-    module:[*c]const u8,
-    className:[*c]const u8,
-    signature:[*c]const u8,
-    arg_types:anytype,
-    ret_type:anytype
+    comptime module:[*c]const u8,
+    comptime className:[*c]const u8,
+    comptime signature:[*c]const u8,
+    comptime arg_types:anytype,
+    comptime ret_type:anytype
 ) type {
     return struct {
         const Self = @This();
@@ -217,32 +217,113 @@ pub fn MethodCallHandle(
         }
 
         pub fn callMethod (self:*Self, args:anytype) !ret_type {
-            ensureSlots(self.vm, self.slots);
+            ensureSlots(self.vm, self.slots + 1);
             setSlotHandle(self.vm, 0, self.class_handle);
-
+            // Process out our arguments
             inline for(arg_types) |v,i| {
                 switch(@typeInfo(v)) {
                     .Int => setSlotDouble(self.vm, i + 1, @intToFloat(f64,args[i])),
                     .Float => setSlotDouble(self.vm, i + 1, @floatCast(f64,args[i])),
-                    // .Array / strings ?
-                    // .Void
+                    .Bool => setSlotBool(self.vm, i + 1, args[i]),
+                    .Pointer => |ptr| { //String, or slice of strings or values
+                        comptime var T = ptr.child;
+                        comptime var is_str = util.isCString(v) or std.meta.trait.isZigString(v);
+                        comptime var is_int = std.meta.trait.isIntegral(T);
+                        comptime var is_astr = util.isCString(T) or std.meta.trait.isZigString(T);
+                        comptime var is_bool = (T == bool);
+                        // v = array, T = array type
+                        if(ptr.size == .Slice) {
+                            if(is_str) {
+                                setSlotString(self.vm,i + 1,args[i]);
+                            } else {
+                                setSlotNewList(self.vm,i + 1);
+                                inline for(args[i]) |vx,ix| {
+                                    if(is_astr) {
+                                        setSlotString(self.vm,i + 2,vx);
+                                    } else if(is_bool) {
+                                        setSlotBool(self.vm,i + 2,vx);
+                                    } else if(is_int) {
+                                        setSlotDouble(self.vm,i + 2, @intToFloat(f64,vx));
+                                    } else {
+                                        setSlotDouble(self.vm,i + 2, @floatCast(f64,vx));
+                                    }
+                                    insertInList(self.vm,i + 1,@intCast(c_int,ix),i + 2);
+                                }
+                            }
+                        }
+                    },
+                    .Struct => |ptr| {
+                        if(!ptr.is_tuple) return error.UnsupportedParameterType;
+                        setSlotNewList(self.vm,i + 1);
+                        inline for(args[i]) |vt,it| { //tuple index
+                            comptime var T = @TypeOf(vt);
+                            comptime var is_str = util.isCString(T) or std.meta.trait.isZigString(T);
+                            comptime var is_int = std.meta.trait.isIntegral(T);
+                            comptime var is_bool = (T == bool);
+                            if(is_str) {
+                                setSlotString(self.vm,i + 2,vt);
+                            } else if(is_bool) {
+                                setSlotBool(self.vm,i + 2,vt);
+                            } else if(is_int) {
+                                setSlotDouble(self.vm,i + 2, @intToFloat(f64,vt));
+                            } else {
+                                setSlotDouble(self.vm,i + 2, @floatCast(f64,vt));
+                            }
+                            insertInList(self.vm,i + 1,@intCast(c_int,it),i + 2);
+                        }
+                    },
                     else => return error.UnsupportedParameterType,
                 }
             } 
-        
+            // Call method
             var cres:InterpretResult = call(self.vm,self.method_sig);
             switch(@intToEnum(ResType,cres)) {
                 .compile_error => return error.CompileError,
                 .runtime_error => return error.RuntimeError,
-                else => {
-                    if(ret_type == void) return;
-                    switch(@typeInfo(ret_type)) {
-                        .Int => return @floatToInt(ret_type,getSlotDouble(self.vm,0)),
-                        .Float => return @floatCast(ret_type,getSlotDouble(self.vm,0)),
-                        // .Array / Strings ?
-                        else => return error.UnsupportedReturnType,
+                else => { },
+            }
+            // Read our return back in
+            if(ret_type == void) return;
+            switch(@typeInfo(ret_type)) {
+                .Int => return @floatToInt(ret_type,getSlotDouble(self.vm,0)),
+                .Float => return @floatCast(ret_type,getSlotDouble(self.vm,0)),
+                .Bool => return getSlotBool(self.vm,0),
+                .Pointer => |ptr| {
+                    comptime var T = ptr.child;
+                    comptime var is_str = util.isCString(ret_type) or std.meta.trait.isZigString(ret_type);
+                    comptime var is_int = std.meta.trait.isIntegral(T);
+                    comptime var is_astr = util.isCString(T) or std.meta.trait.isZigString(T);
+                    comptime var is_bool = (T == bool);
+                    if(ptr.size == .Slice) {
+                        // String
+                        if(is_str) {
+                            return std.mem.span(getSlotString(self.vm,0));
+                        } 
+                        // Array
+                        var idx:c_int = 0;
+                        ensureSlots(self.vm,2);
+                        var list = std.ArrayList(T).init(data.allocator);
+
+                        while(idx < getListCount(self.vm,0)) : (idx += 1) {
+                            getListElement(self.vm,0,idx,1);
+                            if(is_astr) { // C String
+                                try list.append(std.mem.span(getSlotString(self.vm,1)));
+                            } else if(is_bool) { // Number
+                                // Bool
+                                try list.append(getSlotBool(self.vm,1));
+                            } else if(is_int) { // Number
+                                // Int
+                                try list.append(@floatToInt(T,getSlotDouble(self.vm,1)));
+                            } else {
+                                // Float
+                                try list.append(@floatCast(T,getSlotDouble(self.vm,1)));
+                            }
+                        }
+                        return list.toOwnedSlice();
                     }
-                },
+                },                  
+                // Tuple for diff value lists?
+                else => return error.UnsupportedReturnType,
             }
 
         }

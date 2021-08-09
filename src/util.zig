@@ -50,3 +50,18 @@ pub fn run (vm:?*VM,module:CString,code:CString) !void {
 pub fn slotType(vm:?*VM,slot:i32) DataType {
     return @intToEnum(DataType,getSlotType(vm,slot));
 }
+
+// Should match [*c]const u8 and [*c]u8
+pub fn isCString(comptime T:type) bool {
+    comptime {
+        const info = @typeInfo(T);
+        if (info != .Pointer) return false;
+        const ptr = &info.Pointer;
+        return (ptr.size == .C and
+                ptr.is_volatile == false and
+                ptr.alignment == 1 and
+                ptr.child == u8 and
+                ptr.is_allowzero == true and
+                ptr.sentinel == null); 
+    }
+}
