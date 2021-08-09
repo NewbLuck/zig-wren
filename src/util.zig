@@ -1,6 +1,8 @@
 const std = @import("std");
 usingnamespace @import("wren.zig");
 
+/// Returns the basic Wren default configuration with the basic handlers 
+/// defined in this library 
 pub fn initDefaultConfig (configuration:[*c]Configuration) void {
     initConfiguration(configuration);
     configuration.*.writeFn = bindings.writeFn;
@@ -10,7 +12,7 @@ pub fn initDefaultConfig (configuration:[*c]Configuration) void {
     configuration.*.loadModuleFn = bindings.loadModuleFn;        
 }
 
-/// Tests if a c string matches a zig string
+/// Tests if a C string matches a Zig string
 pub fn matches (cstr:CString,str:[]const u8) bool {
     return std.mem.eql(u8,std.mem.span(cstr),str);
 }
@@ -37,6 +39,7 @@ pub fn loadWrenSourceFile (allocator:*std.mem.Allocator,path:[]const u8) !CStrin
     return rval;
 }
 
+/// A simple code runner
 pub fn run (vm:?*VM,module:CString,code:CString) !void {
     var call_res = @intToEnum(ResType,interpret(vm,module,code));
     switch (call_res) {
@@ -47,11 +50,12 @@ pub fn run (vm:?*VM,module:CString,code:CString) !void {
     }
 }
 
+/// Retuns the DataType enum of the slot type at the given index
 pub fn slotType(vm:?*VM,slot:i32) DataType {
     return @intToEnum(DataType,getSlotType(vm,slot));
 }
 
-// Should match [*c]const u8 and [*c]u8
+/// Returns true for types of [*c]const u8 and [*c]u8
 pub fn isCString(comptime T:type) bool {
     comptime {
         const info = @typeInfo(T);
@@ -63,5 +67,32 @@ pub fn isCString(comptime T:type) bool {
                 ptr.child == u8 and
                 ptr.is_allowzero == true and
                 ptr.sentinel == null); 
+    }
+}
+
+/// Prints the current slot state to stdout via std.debug.print
+pub fn dumpSlotState(vm:?*VM) void {
+    const print = std.debug.print; //Lazy
+
+    var active_slots = getSlotCount(vm);
+    print("\nSlots Acitve: {}\n",.{active_slots});
+    var i:c_int = 0;
+    while(i < active_slots) : (i += 1) {
+        var slot_type = slotType(vm,i);
+        print(" [{d}]: {s}\n  '---> ",.{i,slot_type});
+        switch(slot_type) {
+            .wren_bool => print("{}\n",.{getSlotBool(vm,i)}),
+            .wren_foreign => print("{any}\n",.{getSlotForeign(vm,i)}),
+            .wren_list => print("List [{d}]\n",.{getListCount(vm,i)}),
+            .wren_map => print("{s}\n",.{"MAP"}),
+            .wren_null => print("{s}\n",.{"NULL"}),
+            .wren_num => print("{d}\n",.{getSlotDouble(vm,i)}),
+            .wren_string => print("{s}\n",.{getSlotString(vm,i)}),
+            .wren_unknown => {
+                var handle = getSlotHandle(vm,i);
+                print("{any}\n",.{handle});
+            },
+        }
+        
     }
 }

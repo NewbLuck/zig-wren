@@ -27,16 +27,26 @@ pub const Point = struct {
 // Allocate is called on Wren creation and finalize on Wren destruction.
 pub fn pointAllocate(vm:?*wren.VM) callconv(.C) void {
     std.debug.print(" [+] ALLOC Point\n",.{});
+    
+    // Tell Wren how many bytes we need for the Zig class instance
     var ptr:?*c_void = wren.setSlotNewForeign(vm, 0, 0, @sizeOf(Point));
+    
+    // Get the parameter given to the class constructor in Wren
     var size_param:f64 = wren.getSlotDouble(vm, 1);
+    
+    // Get a typed pointer to the Wren-allocated memory
     var pt_ptr:*Point = @ptrCast(*Point,@alignCast(@alignOf(*Point),ptr));
+    
+    // Create the Zig class instance into the Wren memory location,
+    // applying the passed value to keep them in sync
     pt_ptr.* = Point { .size = size_param };
+    
     std.debug.print(" [+] ALLOC Point Done\n",.{});
 }
 pub fn pointFinalize(data:?*c_void) callconv(.C) void {
     _=data;
     std.debug.print(" [+] Finalize Point\n",.{});
-    // Do whatever cleanup is needed here
+    // Do whatever cleanup is needed here, deinits etc
 }
 
 // A function we will call from Wren
@@ -45,40 +55,24 @@ pub fn mathAdd (vm:?*wren.VM) callconv(.C) void {
     var b:f64 = wren.getSlotDouble(vm, 2);
     wren.setSlotDouble(vm, 0, a + b);
 }
-// A function we will call from Wren
+// A slightly different function we will call from Wren
 pub fn mathAddSec (vm:?*wren.VM) callconv(.C) void {
     var a:f64 = wren.getSlotDouble(vm, 1);
     var b:f64 = wren.getSlotDouble(vm, 2);
     wren.setSlotDouble(vm, 0, a + b + b + a);
 }
 
-pub fn main() anyerror!void {
-    // Initialize the data structures for the wrapper
-    wren.init(alloc);
-    defer wren.deinit();
 
-    // Set up a VM configuration using the supplied default bindings
-    var config:wren.Configuration = undefined;
-    wren.util.initDefaultConfig(&config);
-
-    // Create a new VM from our config we generated previously
-    const vm = wren.newVM(&config);
-    defer wren.freeVM(vm);
-
-    // Register our foreign methods
-    try wren.foreign.registerMethod(vm,"main","Math","add(_,_)",true,mathAdd);
-    try wren.foreign.registerMethod(vm,"main","Point","setSize(_)",false,Point.setSize);
-
-    // Register our foreign class
-    try wren.foreign.registerClass(vm,"main","Point",pointAllocate,pointFinalize);
-
+fn testBasic (vm:?*wren.VM) !void {
     // Interpret code in the "main" module
     std.debug.print("\n=== Basic Test ===\n",.{});
     try wren.util.run(vm,"main",
         \\ System.print("Hello from Wren!")
         \\ System.print("Testing line 2!")
     );
+}
 
+fn testSyntaxError (vm:?*wren.VM) !void {
     // Interpret known-bad code
     std.debug.print("\n=== Have an Error ===\n",.{});
     wren.util.run(vm,"main",
@@ -87,6 +81,11 @@ pub fn main() anyerror!void {
     ) catch |err| {
         std.debug.print("THIS IS FINE - {s}\n",.{err});
     };
+}
+
+fn testForeign (vm:?*wren.VM) !void {
+    // Register our foreign methods
+    try wren.foreign.registerMethod(vm,"main","Math","add(_,_)",true,mathAdd);
 
     // Try calling Zig code from Wren code
     std.debug.print("\n=== Calling Zig from Wren ===\n",.{});
@@ -97,6 +96,27 @@ pub fn main() anyerror!void {
         \\ System.print(Math.add(3,5))
     );
 
+    // Register our foreign class and method
+    try wren.foreign.registerClass(vm,"main","Point",pointAllocate,pointFinalize);
+    try wren.foreign.registerMethod(vm,"main","Point","setSize(_)",false,Point.setSize);
+    
+    // Foreign classes in Wren defined in Zig
+    std.debug.print("\n=== Using foreign classes ===\n",.{});
+    wren.util.run(vm,"main",
+        \\ foreign class Point {
+        \\   construct create(size) {}
+        \\
+        \\   foreign setSize(size)
+        \\ }
+        \\ var point = Point.create(20)
+        \\ point.setSize(40)
+        \\ point.setSize(0)
+    ) catch |err| {
+        std.debug.print("THIS IS FINE TOO - {s}\n",.{err});
+    };
+}
+
+fn testValuePassing (vm:?*wren.VM) !void {
     // Try calling Wren code from Zig code
     std.debug.print("\n=== Calling Wren from Zig ===\n",.{});
     try wren.util.run(vm,"main",
@@ -133,7 +153,7 @@ pub fn main() anyerror!void {
 
     var needs_adding:usize = 41;
     std.debug.print("Before Call: {}\n",.{needs_adding});
-
+    
     // (module, class, method sig, arg types tuple, return type)
     var wm = try wren.MethodCallHandle("main","TestClass","doubleUp(_)",.{usize},usize).init(vm);
     defer wm.deinit();
@@ -179,22 +199,9 @@ pub fn main() anyerror!void {
     defer wm9.deinit();
     var otup = try wm9.callMethod(.{ .{"poo",3}, 39 });
     std.debug.print("Str,Int Tuple->Int: {any}\n",.{otup});
+}
 
-    // Foreign classes in Wren defined in Zig
-    std.debug.print("\n=== Using foreign classes ===\n",.{});
-    wren.util.run(vm,"main",
-        \\ foreign class Point {
-        \\   construct create(size) {}
-        \\
-        \\   foreign setSize(size)
-        \\ }
-        \\ var point = Point.create(20)
-        \\ point.setSize(40)
-        \\ point.setSize(0)
-    ) catch |err| {
-        std.debug.print("THIS IS FINE TOO - {s}\n",.{err});
-    };
-
+fn testImports (vm:?*wren.VM) !void {
     // Test importing a separate Wren code file
     std.debug.print("\n=== Imports ===\n",.{});
     try wren.util.run(vm,"main",
@@ -202,7 +209,9 @@ pub fn main() anyerror!void {
         \\ import "example/test"
         \\ System.print("end import")
     );
+}
 
+fn testOptionalModules (vm:?*wren.VM) !void {
     // Test the optional 'Meta' module
     std.debug.print("\n=== Meta module ===\n",.{});
     try wren.util.run(vm,"main",
@@ -233,9 +242,13 @@ pub fn main() anyerror!void {
         \\ System.print(below > 450) // expect: true
         \\ System.print(below < 550) // expect: true
     );
+}
 
+fn testMultiVm (vm:?*wren.VM) !void {
     // Using additional VMs
-    // Create a new-new VM from our old config
+    var config:wren.Configuration = undefined;
+    wren.util.initDefaultConfig(&config);
+    
     var vm2 = wren.newVM(&config);
     defer wren.freeVM(vm2);
 
@@ -247,7 +260,6 @@ pub fn main() anyerror!void {
     try wren.util.run(vm,"main",
         \\ System.print(Math.add(3,5))
     );
-
     // New, same Wren def but different Zig binding
     try wren.util.run(vm2,"main",
         \\ class Math {
@@ -255,8 +267,32 @@ pub fn main() anyerror!void {
         \\ }
         \\ System.print(Math.add(3,5))
     );
+}
 
-    std.debug.print("\n=== Examples Done ===\n",.{});
+pub fn main() anyerror!void {
+    // Initialize the data structures for the wrapper
+    wren.init(alloc);
+    defer wren.deinit();
+
+    // Set up a VM configuration using the supplied default bindings
+    var config:wren.Configuration = undefined;
+    wren.util.initDefaultConfig(&config);
+
+    // Create a new VM from our config we generated previously
+    const vm = wren.newVM(&config);
+    defer wren.freeVM(vm);
+
+    // Run all of our examples
+    std.debug.print("\n>>>>>> Starting Examples <<<<<<\n",.{});
+    try testBasic(vm);
+    try testSyntaxError(vm);
+    try testForeign(vm);
+    try testValuePassing(vm);
+    try testImports(vm);
+    try testOptionalModules(vm);
+    try testMultiVm(vm);
+    std.debug.print("\n>>>>>> Examples Done <<<<<<\n",.{});
     
-    // defer unloads the VMs, this runs finalize on Zig-bound classes
+    // deferred wren.deinit unloads the VMs, 
+    // this runs finalize on Zig-bound classes
 }
