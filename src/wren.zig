@@ -274,7 +274,7 @@ pub const insertInList = ext.wrenInsertInList;
 pub const getMapCount = ext.wrenGetMapCount;
 /// Returns true if the key in [keySlot] is found in the map placed in [mapSlot].
 pub const getMapContainsKey = ext.wrenGetMapContainsKey;
-//EXTENSTION: Returns the key into the [keySlot] and value into [valueSlot] of the 
+//EXTENSION: Returns the key into the [keySlot] and value into [valueSlot] of the 
 // map in [mapSlot] at the map index of [index]
 pub const getMapElement = ext.wrenGetMapElement;
 /// Retrieves a value with the key in [keySlot] from the map in [mapSlot] and
