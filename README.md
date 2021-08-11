@@ -1,19 +1,18 @@
 # zig-wren <img align="right" src="zig-wren.png">
 
-A basic wrapper around [Wren](https://wren.io/).
+A wrapper around [Wren](https://wren.io/).
 
-This is still a WIP.  Currently it provides a low-to-mid-level wrap around the Wren bindings, as well as exposes the C api directly for advanced usage.
+It provides a mid-level wrap around the Wren bindings, as well as exposes the C api directly for advanced usage.  
 
-Note: The optional add-ons for random and meta are included and working (from limited testing).
+This supports multiple concurrent VMs, as well as passing all Wren data types to and from Zig (including maps and lists).  
+The only exception to this is receiving to Zig a multi-typed list from Wren due to the way tuples work in Zig, I am not big brain enough to figure it out.
+
+The optional add-ons for random and meta are included and working fine (from limited testing).
+
+## Adding to your project with zigmod  
+(**Thanks to [@nektro](https://github.com/nektro) for providing the zigmod integration!**)
 
 ---
-
-**Thanks to [@nektro](https://github.com/nektro) for providing the zigmod integration!**
-
----
-
-## Adding to your project with zigmod
-
 Add this into your main project's zig.mod file:
 ```yml
 dependencies:
@@ -41,8 +40,6 @@ wrenBuild.link(b, exe, target);
 ```
 
 See example/example_build.zig for details.
-
----
 
 ## Usage
 

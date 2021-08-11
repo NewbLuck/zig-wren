@@ -9,6 +9,8 @@ pub fn main() anyerror!void {
     defer wren.deinit();
 
     // Set up a VM configuration using the supplied default bindings
+    // To change specific ones, you can override the bindings
+    // after calling initDefaultConfig.
     var config:wren.Configuration = undefined;
     wren.util.initDefaultConfig(&config);
 
