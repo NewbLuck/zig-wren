@@ -7,6 +7,8 @@ It provides a mid-level wrap around the Wren bindings, as well as exposes the C 
 This supports multiple concurrent VMs, as well as passing all Wren data types to and from Zig (including maps and lists).  
 The only exception to this is receiving to Zig a multi-typed list from Wren due to the way tuples work in Zig, I am not big brain enough to figure it out.
 
+This uses the Wren-supplied allocators, I plan to eventually add support for custom allocators.
+
 The optional add-ons for random and meta are included and working fine (from limited testing).
 
 ## Adding to your project with zigmod  
