@@ -52,9 +52,10 @@ const wren = @import("wren");
 ```
 and you are ready to go!
 
-Check `examples/all_the_new_things.zig` for usage (kind of messy).  Almost every feature is implemented in that file.  
+There are lots of examples in the `examples/` directory that covers almost everything needed for embedding.  Check `basic.zig` to get started.
 
-There is also `examples/all_the_old_things.zig` which is the original implementation, it shows how to use it in a lower-level manner, or what to do if you need custom callbacks
-for any of the Wren externals.  
+The example file `all_the_new_things.zig` is all the separate examples squished into one file, it doesn't have anything new.
 
-Aside from the above files, Wren's [embedding guide](https://wren.io/embedding/) has everything else you should need to get started integrating Wren into your Zig project.
+There is also `all_the_old_things.zig` which is based on the C implementation, it shows how to use it in a lower-level manner, or what to do if you need custom callbacks for any of the Wren externals.  
+
+Aside from the above files, Wren's [embedding guide](https://wren.io/embedding/) has everything else you need for any topics not covered by the examples.
