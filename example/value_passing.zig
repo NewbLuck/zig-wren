@@ -18,7 +18,7 @@ pub fn main() anyerror!void {
 
     // Passing and returning a slew of different data types.
     // Values will be casted as appropriate.
-    // Use an array for single-typed lists in wren, a tuple for
+    // Use a span for single-typed lists in wren, a tuple for
     // passing Wren a multi-typed list, and either an AutoHashMap or
     // StringHashMap for a map, depending on the key type.
     // Does not support returned multi-typed lists yet, not sure how to
