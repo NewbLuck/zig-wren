@@ -1,3 +1,6 @@
+// This extends Wren 0.4.0 and adds support for a feature that is not planned
+// until Wren 0.5.0.
+
 #include <stdarg.h>
 #include <string.h>
 

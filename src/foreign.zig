@@ -3,6 +3,7 @@ const data = @import("data.zig");
 usingnamespace @import("wren.zig");
 const HashedArrayList = @import("libs/hashed_array_list.zig").HashedArrayList;
 
+/// Registers our Zig-backed fn so it can be called from Wren
 pub fn registerMethod(
     vm:?*VM,
     module:[]const u8,
@@ -22,6 +23,7 @@ pub fn registerMethod(
     } else return error.NullVmPtr;
 }
 
+///  Finds and returns a forign method fn signature from our registered methods
 pub fn findMethod (
     vm:?*VM,
     module:[]const u8,
@@ -49,6 +51,8 @@ pub fn findMethod (
     } else return error.NullVmPointer;
 }   
 
+/// Registers our Zig-backed struct so it can be used/instantiated from Wren
+/// Requires 2 Zig functions, one aclled on creation, and one on destruction.
 pub fn registerClass(
     vm:?*VM,
     module:[]const u8,
@@ -69,6 +73,7 @@ pub fn registerClass(
 
 }     
 
+/// Finds and returns out cached Zig-backed class for Wren usage
 pub fn findClass (
     vm:?*VM,
     module:[]const u8,
@@ -88,3 +93,8 @@ pub fn findClass (
         } else return error.InvalidVm;
     } else return error.NullVmPointer;
 } 
+
+pub fn castDataPtr(comptime T: type, pointer: ?*c_void) *T {
+    // TODO: Sanity check, change to error union
+    return @ptrCast(*T,@alignCast(@alignOf(*T),pointer));
+}

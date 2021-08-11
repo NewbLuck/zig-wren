@@ -10,6 +10,7 @@ const HashedArrayList = @import("libs/hashed_array_list.zig").HashedArrayList;
 pub const util = @import("util.zig");
 /// A set of default bindings for the Wren configuration that provide basic functionality
 pub const bindings = @import("bindings.zig");
+/// Bindings for working with foreign methods
 pub const foreign = @import("foreign.zig");
 
 // Convenience Signatures
@@ -22,6 +23,14 @@ pub const VERSION_MINOR = c.WREN_VERSION_MINOR;
 pub const VERSION_PATCH = c.WREN_VERSION_PATCH;
 pub const VERSION_STRING = c.WREN_VERSION_STRING;
 pub const VERSION_NUMBER = c.WREN_VERSION_NUMBER;
+
+pub const version = struct {
+    pub const major:i32 = VERSION_MAJOR;
+    pub const minor:i32 = VERSION_MINOR;
+    pub const patch:i32 = VERSION_PATCH;
+    pub const string:[]const u8 = VERSION_STRING;
+    pub const number:f32 = VERSION_NUMBER;
+};
 
 // Types
 /// A single virtual machine for executing Wren code.
@@ -83,7 +92,7 @@ pub const WriteFn = c.WrenWriteFn;
 ///
 /// A runtime error is reported by calling this once with [type]
 /// `WREN_ERROR_RUNTIME`, no [module] or [line], and the runtime error's
-/// [message]. After that, a series of [type] `WREN_ERROR_STACK_TRACE` calls are
+/// [message]. After that, a series of [type] `ERROR_STACK_TRACE` calls are
 /// made for each line in the stack trace. Each of those has the resolved
 /// [module] and [line] where the method or function is defined and [message] is
 /// the name of the method or function.
@@ -369,6 +378,73 @@ pub fn deinit() void {
     data.class_lookup.deinit();
 }
 
+/// See setSlotAuto.
+/// Allows manual specification of a type in case the 
+/// value type doesn't match the desired type for some reason
+pub fn setSlotAutoTyped(vm:?*VM,comptime T:type,slot:c_int,value:anytype) void {
+    comptime var is_str = std.meta.trait.isZigString(T);
+    comptime var is_cstr = util.isCString(T);
+    comptime var is_int = std.meta.trait.isIntegral(T);
+    comptime var is_bool = (T == bool);
+    if(is_str) {
+        // TODO: Convert this fn to an error union
+        var cvt = data.allocator.dupeZ(u8,value) catch unreachable;
+        setSlotString(vm,slot,cvt);
+    } else if(is_cstr) {
+        setSlotString(vm,slot,value);
+    } else if(is_bool) {
+        setSlotBool(vm,slot,value);
+    } else if(is_int) {
+        setSlotDouble(vm,slot,@intToFloat(f64,value));
+    } else {
+        setSlotDouble(vm,slot,@floatCast(f64,value));
+    }
+}
+
+/// Replacement for setSlot* for the basic value types that casts to the
+/// type of data that Wren uses.  
+/// Does not handle lists or maps.
+pub fn setSlotAuto(vm:?*VM,slot:c_int,value:anytype) void {
+    comptime var T = @TypeOf(value);
+    comptime var is_str = std.meta.trait.isZigString(T);
+    comptime var is_cstr = util.isCString(T);
+    comptime var is_int = std.meta.trait.isIntegral(T);
+    comptime var is_bool = (T == bool);
+    if(is_str) {
+        // TODO: Convert this fn to an error union
+        var cvt = data.allocator.dupeZ(u8,value) catch unreachable;
+        setSlotString(vm,slot,cvt);
+    } else if(is_cstr) {
+        setSlotString(vm,slot,value);
+    } else if(is_bool) {
+        setSlotBool(vm,slot,value);
+    } else if(is_int) {
+        setSlotDouble(vm,slot,@intToFloat(f64,value));
+    } else {
+        setSlotDouble(vm,slot,@floatCast(f64,value));
+    }
+}
+
+
+/// Replacement for getSlot[type] for the basic value types that casts to the
+/// requested Zig data type.  Expects that the slot has data in a compatible 
+/// data type.
+/// Does not handle lists or maps.
+pub fn getSlotAuto(vm:?*VM,comptime T:type,slot:c_int) T {
+    comptime var is_str = util.isCString(T) or std.meta.trait.isZigString(T);
+    comptime var is_int = std.meta.trait.isIntegral(T);
+    comptime var is_bool = (T == bool);
+    if(is_str) {
+        return std.mem.span(getSlotString(vm,slot));
+    } else if(is_bool) {
+        return getSlotBool(vm,slot);
+    } else if(is_int) {
+        return @floatToInt(T,getSlotDouble(vm,slot));
+    } else {
+        return @floatCast(T,getSlotDouble(vm,slot));
+    }    
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 /// This is a handle to a method in Wren that can be used to call the method
@@ -384,14 +460,14 @@ pub fn MethodCallHandle(
     comptime signature:[*c]const u8,
     /// A tuple or types being passed to the method, in the same order as
     /// they are defined in the method.
-    /// - This will handle conversions between Wren's double and all i/f types.  
+    /// - This will handle data conversions between Wren and Zig.  
     /// - To pass a list, either use a typed slice for single-typed lists, or 
     ///   pass a tuple of types for a multi-type list.
     /// - Strings are recognized by std.meta.trait.isZigString, as well as
     ///   [*c]const u8 and [*c] u8.
     comptime arg_types:anytype,
     /// The Zig type being returned for the method.  The same auto-casting
-    /// rules apply as arg_types.
+    /// rules apply as arg_types.  Tuples are not supported yet.
     comptime ret_type:anytype
 ) type {
     return struct {
@@ -455,15 +531,14 @@ pub fn MethodCallHandle(
                     .Null => setSlotNull(self.vm, i + 1, args[i]),
                     .Pointer => |ptr| { 
                         //String, or slice of strings or values (Wren list)
-                        comptime var T = ptr.child;
                         comptime var is_str = util.isCString(v) or std.meta.trait.isZigString(v);
                         if(ptr.size == .Slice) {
                             if(is_str) {
-                                setSlotAuto(self.vm,v,i + 1,args[i]);
+                                setSlotAuto(self.vm,i + 1,args[i]);
                             } else {
                                 setSlotNewList(self.vm,i + 1);
                                 inline for(args[i]) |vx,ix| {
-                                    setSlotAuto(self.vm,T,i + 2,vx);
+                                    setSlotAuto(self.vm,i + 2,vx);
                                     insertInList(self.vm,i + 1,@intCast(c_int,ix),i + 2);
                                 }
                             }
@@ -473,20 +548,18 @@ pub fn MethodCallHandle(
                         if(!st.is_tuple) {
                             // HASHMAPS HERE
                             if(!util.isHashMap(v)) return error.UnsupportedParameterType;
-                            const kv_type = util.getHashMapTypes(v);
                             setSlotNewMap(self.vm,i+1);
                             var it = args[i].iterator();
                             while(it.next()) |entry| {
-                                setSlotAuto(self.vm,kv_type.key,i + 2,entry.key_ptr.*);
-                                setSlotAuto(self.vm,kv_type.value,i + 3,entry.value_ptr.*);
+                                setSlotAuto(self.vm,i + 2,entry.key_ptr.*);
+                                setSlotAuto(self.vm,i + 3,entry.value_ptr.*);
                                 setMapValue(self.vm,i + 1,i + 2,i + 3);
                             }
                         } else {
                             // Tuples, used to pass multi-type Wren lists
                             setSlotNewList(self.vm,i + 1);
                             inline for(args[i]) |vt,it| { //tuple index
-                                comptime var T = @TypeOf(vt);
-                                setSlotAuto(self.vm,T,i + 2,vt);
+                                setSlotAuto(self.vm,i + 2,vt);
                                 insertInList(self.vm,i + 1,@intCast(c_int,it),i + 2);
                             }
                         }
@@ -529,7 +602,7 @@ pub fn MethodCallHandle(
                 .Struct => |st| {
                     if (!st.is_tuple) {
                         // Hashmap
-                        if(!util.isHashMap(ret_type)) return error.UnsupportedParameterType;
+                        if(!util.isHashMap(ret_type)) return error.UnsupportedReturnType;
 
                         const kv_type = util.getHashMapTypes(ret_type);
                         var map = ret_type.init(data.allocator);
@@ -548,20 +621,9 @@ pub fn MethodCallHandle(
                         //Tuple
                         // Not sure how to build the data in runtime?
                         //std.meta.Tuple
-
-                        // Single-type list(as slice)
-                        ensureSlots(self.vm,2);
-                        var idx:c_int = 0;
-                        var list = std.ArrayList(T).init(data.allocator);
-                        while(idx < getListCount(self.vm,0)) : (idx += 1) {
-                            getListElement(self.vm,0,idx,1);
-                            try list.append(getSlotAuto(self.vm,T,1));
-                        }
-                        return list.toOwnedSlice();
-
+                        return error.UnsupportedReturnType;
                     }
                 },              
-                // Tuple for diff value lists?
                 else => return error.UnsupportedReturnType,
             }
 
@@ -570,43 +632,3 @@ pub fn MethodCallHandle(
     };
 
 }
-
-/// Replacement for setSlot* for the basic value types
-/// Does not handle lists or maps
-pub fn setSlotAuto(vm:?*VM,comptime T:type,slot:c_int,value:anytype) void {
-    comptime var is_str = std.meta.trait.isZigString(T);
-    comptime var is_cstr = util.isCString(T);
-    comptime var is_int = std.meta.trait.isIntegral(T);
-    comptime var is_bool = (T == bool);
-    if(is_str) {
-        // TODO: Convert this fn to an error union
-        var cvt = data.allocator.dupeZ(u8,value) catch unreachable;
-        setSlotString(vm,slot,cvt);
-    } else if(is_cstr) {
-        setSlotString(vm,slot,value);
-    } else if(is_bool) {
-        setSlotBool(vm,slot,value);
-    } else if(is_int) {
-        setSlotDouble(vm,slot,@intToFloat(f64,value));
-    } else {
-        setSlotDouble(vm,slot,@floatCast(f64,value));
-    }
-}
-
-/// Replacement for getSlot* for the basic value types
-/// Does not handle lists or maps
-pub fn getSlotAuto(vm:?*VM,comptime T:type,slot:c_int) T {
-    comptime var is_str = util.isCString(T) or std.meta.trait.isZigString(T);
-    comptime var is_int = std.meta.trait.isIntegral(T);
-    comptime var is_bool = (T == bool);
-    if(is_str) {
-        return std.mem.span(getSlotString(vm,slot));
-    } else if(is_bool) {
-        return getSlotBool(vm,slot);
-    } else if(is_int) {
-        return @floatToInt(T,getSlotDouble(vm,slot));
-    } else {
-        return @floatCast(T,getSlotDouble(vm,slot));
-    }    
-}
-

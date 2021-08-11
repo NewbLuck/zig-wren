@@ -3,19 +3,29 @@ const wren = @import("wren");
 
 pub var alloc = std.testing.allocator;
 
+// This is basically all the separate example programs squished together into 
+// one file so they can be ran all at once. 
+// See the other Zig files in example/ for cleaner examples.
+
 // This will be a foreign class in Wren
 pub const Point = struct {
     size:f64 = 0,
     pub fn setSize (vm:?*wren.VM) callconv(.C) void {
+        // Get the Wren class handle which holds our Zig instance memory
         if(wren.getSlotForeign(vm, 0)) |ptr| {
-            var point = @ptrCast(*Point,@alignCast(@alignOf(*Point),ptr));
-            var nsize:f64 = wren.getSlotDouble(vm, 1);
+            // Convert slot 0 memory back into the Zig class
+            var point = wren.foreign.castDataPtr(Point,ptr);
+            // Get the argument
+            var nsize:f64 = wren.getSlotAuto(vm,f64,1);
             std.debug.print(" [+] Setting point to: {d}\n",.{nsize});
+            // Error checking
             if(nsize < 1.0) {
-                wren.setSlotString(vm, 0, "That is way too small!");
+                // Error handling, put error msg back in slot 0 and abort the fiber
+                wren.setSlotAuto(vm,0,"That is way too small!");
                 wren.abortFiber(vm, 0);
                 return;
             }
+            // Otherwise set the value
             point.*.size = nsize;
             std.debug.print(" [+] Point is now: {d}\n",.{nsize});
         }
@@ -32,10 +42,10 @@ pub fn pointAllocate(vm:?*wren.VM) callconv(.C) void {
     var ptr:?*c_void = wren.setSlotNewForeign(vm, 0, 0, @sizeOf(Point));
     
     // Get the parameter given to the class constructor in Wren
-    var size_param:f64 = wren.getSlotDouble(vm, 1);
+    var size_param:f64 = wren.getSlotAuto(vm, f64, 1);
     
-    // Get a typed pointer to the Wren-allocated memory
-    var pt_ptr:*Point = @ptrCast(*Point,@alignCast(@alignOf(*Point),ptr));
+    // Get a typed pointer to the Wren-allocated 
+    var pt_ptr = wren.foreign.castDataPtr(Point, ptr);
     
     // Create the Zig class instance into the Wren memory location,
     // applying the passed value to keep them in sync
@@ -51,15 +61,16 @@ pub fn pointFinalize(data:?*c_void) callconv(.C) void {
 
 // A function we will call from Wren
 pub fn mathAdd (vm:?*wren.VM) callconv(.C) void {
-    var a:f64 = wren.getSlotDouble(vm, 1);
-    var b:f64 = wren.getSlotDouble(vm, 2);
+    var a:f64 = wren.getSlotAuto(vm, f64, 1);
+    var b:f64 = wren.getSlotAuto(vm, f64, 2);
     wren.setSlotDouble(vm, 0, a + b);
 }
+
 // A slightly different function we will call from Wren
 pub fn mathAddSec (vm:?*wren.VM) callconv(.C) void {
-    var a:f64 = wren.getSlotDouble(vm, 1);
-    var b:f64 = wren.getSlotDouble(vm, 2);
-    wren.setSlotDouble(vm, 0, a + b + b + a);
+    var a:f64 = wren.getSlotAuto(vm, f64, 1);
+    var b:f64 = wren.getSlotAuto(vm, f64, 2);
+    wren.setSlotAuto(vm, 0, a + b + b + a);
 }
 
 fn testBasic (vm:?*wren.VM) !void {
@@ -288,6 +299,12 @@ fn testMultiVm (vm:?*wren.VM) !void {
 }
 
 pub fn main() anyerror!void {
+    std.debug.print("Version Major: {}\n",.{wren.version.major});
+    std.debug.print("Version Minor: {}\n",.{wren.version.minor});
+    std.debug.print("Version Patch: {}\n",.{wren.version.patch});
+    std.debug.print("Version String: {s}\n",.{wren.version.string});
+    std.debug.print("Version Number: {d}\n",.{wren.version.number});
+
     // Initialize the data structures for the wrapper
     wren.init(alloc);
     defer wren.deinit();
