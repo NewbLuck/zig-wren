@@ -50,7 +50,7 @@ const wren = @import("wren");
 ```
 and you are ready to go!
 
-There are lots of examples in the `examples/` directory that covers almost everything needed for embedding.  Check `basic.zig` to get started.
+There are lots of examples in the `examples/` directory that cover almost everything needed for embedding.  Check `basic.zig` to get started.
 
 The example file `all_the_new_things.zig` is all the separate examples squished into one file, it doesn't have anything new.
 
