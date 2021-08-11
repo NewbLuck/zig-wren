@@ -26,7 +26,7 @@ pub fn main() anyerror!void {
     var config:wren.Configuration = undefined;
     wren.util.initDefaultConfig(&config);
 
-    // Create two VMs from or config
+    // Create two VMs from our config
     const vm1 = wren.newVM(&config);
     defer wren.freeVM(vm1);
     const vm2 = wren.newVM(&config);
