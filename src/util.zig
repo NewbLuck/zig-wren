@@ -96,3 +96,25 @@ pub fn dumpSlotState(vm:?*VM) void {
         
     }
 }
+
+pub fn isHashMap(comptime hash_map:anytype) bool {
+    return @hasDecl(hash_map,"KV") and @hasDecl(hash_map,"Hash");
+}
+
+const KVType = struct {key:type, value:type};
+
+pub fn getHashMapTypes(comptime hash_map:anytype) KVType {
+    return .{
+        .key = TypeOfField(hash_map.KV, "key"),
+        .value = TypeOfField(hash_map.KV, "value"),
+    };
+}
+
+pub fn TypeOfField(comptime structure: anytype, comptime field_name: []const u8) type {
+    inline for (std.meta.fields(structure)) |f| {
+        if (std.mem.eql(u8, f.name, field_name)) {
+            return f.field_type;
+        }
+    }
+    @compileError(field_name ++ " not found in " ++ @typeName(@TypeOf(structure)));
+}

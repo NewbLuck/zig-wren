@@ -62,7 +62,6 @@ pub fn mathAddSec (vm:?*wren.VM) callconv(.C) void {
     wren.setSlotDouble(vm, 0, a + b + b + a);
 }
 
-
 fn testBasic (vm:?*wren.VM) !void {
     // Interpret code in the "main" module
     std.debug.print("\n=== Basic Test ===\n",.{});
@@ -148,6 +147,13 @@ fn testValuePassing (vm:?*wren.VM) !void {
         \\   static tup(vtup,vint) {
         \\     return vtup[1] + vint
         \\   }
+        \\   static fmap() {
+        \\     var capitals = {}
+        \\     capitals["Georgia"] = "Atlanta"
+        \\     capitals["Idaho"] = "Boise"
+        \\     capitals["Maine"] = "Augusta"
+        \\     return capitals
+        \\   }
         \\ }
     );
 
@@ -199,6 +205,16 @@ fn testValuePassing (vm:?*wren.VM) !void {
     defer wm9.deinit();
     var otup = try wm9.callMethod(.{ .{"poo",3}, 39 });
     std.debug.print("Str,Int Tuple->Int: {any}\n",.{otup});
+
+    var wm10 = try wren.MethodCallHandle("main","TestClass","fmap()",.{ },std.StringHashMap([]const u8)).init(vm);
+    defer wm10.deinit();
+    var omap = try wm10.callMethod(.{ });
+    std.debug.print(" -> map: \n",.{});
+    //var poo = std.StringHashMap([]const u8).init(std.testing.allocator);
+    var it = omap.iterator();
+    while(it.next()) |entry| {
+        std.debug.print("  >> {s}: {s}\n",.{entry.key_ptr.*,entry.value_ptr.*});
+    }
 }
 
 fn testImports (vm:?*wren.VM) !void {

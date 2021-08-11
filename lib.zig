@@ -43,6 +43,7 @@ pub fn getLib(b: *std.build.Builder, target: std.build.Target) *std.build.LibExe
         wren.addIncludeDir(path ++ "deps/wren/src/include");
         wren.addIncludeDir(path ++ "deps/wren/src/vm");
         wren.addIncludeDir(path ++ "deps/wren/src/optional");
+        wren.addIncludeDir(path ++ "c");
         wren.addCSourceFile(path ++ "deps/wren/src/vm/wren_compiler.c",flagContainer.items);
         wren.addCSourceFile(path ++ "deps/wren/src/vm/wren_core.c",flagContainer.items);
         wren.addCSourceFile(path ++ "deps/wren/src/vm/wren_debug.c",flagContainer.items);
@@ -52,6 +53,7 @@ pub fn getLib(b: *std.build.Builder, target: std.build.Target) *std.build.LibExe
         wren.addCSourceFile(path ++ "deps/wren/src/vm/wren_vm.c",flagContainer.items);
         wren.addCSourceFile(path ++ "deps/wren/src/optional/wren_opt_meta.c",flagContainer.items);
         wren.addCSourceFile(path ++ "deps/wren/src/optional/wren_opt_random.c",flagContainer.items);
+        wren.addCSourceFile(path ++ "c/wren_vm_ext.c",flagContainer.items);
     }
 
     return wren;

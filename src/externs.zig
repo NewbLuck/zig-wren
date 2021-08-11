@@ -35,6 +35,7 @@ pub extern fn wrenSetListElement(vm: ?*VM, listSlot: c_int, index: c_int, elemen
 pub extern fn wrenInsertInList(vm: ?*VM, listSlot: c_int, index: c_int, elementSlot: c_int) void;
 pub extern fn wrenGetMapCount(vm: ?*VM, slot: c_int) c_int;
 pub extern fn wrenGetMapContainsKey(vm: ?*VM, mapSlot: c_int, keySlot: c_int) bool;
+pub extern fn wrenGetMapElement(vm: ?*VM, mapSlot: c_int, index: c_int, keySlot: c_int, valueSlot: c_int) void;
 pub extern fn wrenGetMapValue(vm: ?*VM, mapSlot: c_int, keySlot: c_int, valueSlot: c_int) void;
 pub extern fn wrenSetMapValue(vm: ?*VM, mapSlot: c_int, keySlot: c_int, valueSlot: c_int) void;
 pub extern fn wrenRemoveMapValue(vm: ?*VM, mapSlot: c_int, keySlot: c_int, removedValueSlot: c_int) void;

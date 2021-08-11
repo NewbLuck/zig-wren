@@ -2,6 +2,10 @@ id: qsilhsif195wu43wxzu7bl8w13aczkytyitil95gxcv61y17
 name: wren
 main: src/wren.zig
 description: Light Zig wrapper around the Wren scripting language.
+c_include_dirs:
+  - c
+c_source_files:
+  - c/wren_vm_ext.c
 dependencies:
   - src: git https://github.com/wren-lang/wren
     id: 3elkc7kyiezkr2jjs7fqqbsf3606zf7wq5nj2yj3z2ofsm6m

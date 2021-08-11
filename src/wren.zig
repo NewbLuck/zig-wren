@@ -274,6 +274,9 @@ pub const insertInList = ext.wrenInsertInList;
 pub const getMapCount = ext.wrenGetMapCount;
 /// Returns true if the key in [keySlot] is found in the map placed in [mapSlot].
 pub const getMapContainsKey = ext.wrenGetMapContainsKey;
+//EXTENSTION: Returns the key into the [keySlot] and value into [valueSlot] of the 
+// map in [mapSlot] at the map index of [index]
+pub const getMapElement = ext.wrenGetMapElement;
 /// Retrieves a value with the key in [keySlot] from the map in [mapSlot] and
 /// stores it in [valueSlot].
 pub const getMapValue = ext.wrenGetMapValue;
@@ -437,7 +440,7 @@ pub fn MethodCallHandle(
         /// - OUT/   Null
         /// - OUT/IN Single-typed lists (as slice)
         /// - OUT/-- Multi-typed lists (as tuple)
-        /// - ---/-- Maps
+        /// - ---/IN Maps (as a hashmap, AutoHashMap or StringHashMap)
         pub fn callMethod (self:*Self, args:anytype) !ret_type {
             ensureSlots(self.vm, self.slots + 1);
             setSlotHandle(self.vm, 0, self.class_handle);
@@ -476,8 +479,15 @@ pub fn MethodCallHandle(
                         }
                     },
                     .Struct => |ptr| {
+                        if(!ptr.is_tuple) {
+                            // HASHMAPS HERE
+                            if(!util.isHashMap(v)) return error.UnsupportedParameterType;
+                            //const kv_type = util.getHashMapTypes(v);
+
+                            return error.UnimplementedParameterType;
+                            // construct the map
+                        } 
                         // Tuples, used to pass multi-type Wren lists
-                        if(!ptr.is_tuple) return error.UnsupportedParameterType;
                         setSlotNewList(self.vm,i + 1);
                         inline for(args[i]) |vt,it| { //tuple index
                             comptime var T = @TypeOf(vt);
@@ -544,7 +554,52 @@ pub fn MethodCallHandle(
                         }
                         return list.toOwnedSlice();
                     }
-                },                  
+                },    
+                .Struct => {
+                    if(!util.isHashMap(ret_type)) return error.UnsupportedParameterType;
+                    ensureSlots(self.vm,3);
+
+                    const kv_type = util.getHashMapTypes(ret_type);
+                    comptime var key_str = util.isCString(kv_type.key) or std.meta.trait.isZigString(kv_type.key);
+                    comptime var key_int = std.meta.trait.isIntegral(kv_type.key);
+                    comptime var key_bool = (kv_type.key == bool);
+                    
+                    comptime var val_str = util.isCString(kv_type.value) or std.meta.trait.isZigString(kv_type.value);
+                    comptime var val_int = std.meta.trait.isIntegral(kv_type.value);
+                    comptime var val_bool = (kv_type.value == bool);
+
+                    var map = ret_type.init(data.allocator);
+                    
+                    var idx:c_int = 0;
+                    var mc = getMapCount(self.vm,0);
+                    std.debug.print("CT: {any}",.{mc});
+                    while(idx < mc) : (idx += 1) {
+                        getMapElement(self.vm,0,idx,1,2);
+                        std.debug.print(" >> {any}",.{std.mem.span(getSlotString(self.vm,1))});
+                        std.debug.print(" >> {any}\n",.{std.mem.span(getSlotString(self.vm,2))});
+                        var val:kv_type.value = undefined;
+                        if(val_str) {
+                            val = std.mem.span(getSlotString(self.vm,2));
+                        } else if(val_bool) {
+                            val = getSlotBool(self.vm,2);
+                        } else if (val_int) {
+                            val = @floatToInt(kv_type.value,getSlotDouble(self.vm,2));
+                        } else {
+                            val = @floatCast(kv_type.value,getSlotDouble(self.vm,2));
+                        }
+
+                        if(key_str) {
+                            try map.put(std.mem.span(getSlotString(self.vm,1)),val);
+                        } else if(key_bool) {
+                            try map.put(getSlotBool(self.vm,1),val);
+                        } else if(key_int) {
+                            try map.put(@floatToInt(kv_type.key,getSlotDouble(self.vm,1)),val);
+                        } else {
+                            try map.put(@floatCast(kv_type.key,getSlotDouble(self.vm,1)),val);
+                        }
+                    }
+                    return map;
+                },              
                 // Tuple for diff value lists?
                 else => return error.UnsupportedReturnType,
             }
