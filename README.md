@@ -12,7 +12,6 @@ The optional add-ons for random and meta are included and working fine (from lim
 ## Adding to your project with zigmod  
 (**Thanks to [@nektro](https://github.com/nektro) for providing the zigmod integration!**)
 
----
 Add this into your main project's zig.mod file:
 ```yml
 dependencies:
