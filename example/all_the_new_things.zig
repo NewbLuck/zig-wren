@@ -147,12 +147,10 @@ fn testValuePassing (vm:?*wren.VM) !void {
         \\   static tup(vtup,vint) {
         \\     return vtup[1] + vint
         \\   }
-        \\   static fmap() {
-        \\     var capitals = {}
-        \\     capitals["Georgia"] = "Atlanta"
-        \\     capitals["Idaho"] = "Boise"
-        \\     capitals["Maine"] = "Augusta"
-        \\     return capitals
+        \\   static fmap(imap) {
+        \\     imap["Add1"] = "Wren"
+        \\     imap["Add2"] = "Wren"
+        \\     return imap
         \\   }
         \\ }
     );
@@ -206,15 +204,19 @@ fn testValuePassing (vm:?*wren.VM) !void {
     var otup = try wm9.callMethod(.{ .{"poo",3}, 39 });
     std.debug.print("Str,Int Tuple->Int: {any}\n",.{otup});
 
-    var wm10 = try wren.MethodCallHandle("main","TestClass","fmap()",.{ },std.StringHashMap([]const u8)).init(vm);
+    var wm10 = try wren.MethodCallHandle("main","TestClass","fmap(_)",.{ std.StringHashMap([]const u8) },std.StringHashMap([]const u8)).init(vm);
     defer wm10.deinit();
-    var omap = try wm10.callMethod(.{ });
-    std.debug.print(" -> map: \n",.{});
-    //var poo = std.StringHashMap([]const u8).init(std.testing.allocator);
+    var nmap = std.StringHashMap([]const u8).init(std.testing.allocator);
+    defer nmap.deinit();
+    nmap.put("Init1","Zig") catch unreachable;
+    nmap.put("Init2","Zig") catch unreachable;
+    var omap = try wm10.callMethod(.{ nmap });
+    std.debug.print("SMap->Map: \n",.{});
     var it = omap.iterator();
     while(it.next()) |entry| {
         std.debug.print("  >> {s}: {s}\n",.{entry.key_ptr.*,entry.value_ptr.*});
     }
+
 }
 
 fn testImports (vm:?*wren.VM) !void {

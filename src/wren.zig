@@ -440,11 +440,13 @@ pub fn MethodCallHandle(
         /// - OUT/   Null
         /// - OUT/IN Single-typed lists (as slice)
         /// - OUT/-- Multi-typed lists (as tuple)
-        /// - ---/IN Maps (as a hashmap, AutoHashMap or StringHashMap)
+        /// - OUT/IN Maps (as a hashmap, AutoHashMap or StringHashMap)
         pub fn callMethod (self:*Self, args:anytype) !ret_type {
-            ensureSlots(self.vm, self.slots + 1);
+            // TODO: Change this to ensure what we actually need, not overage amount
+            ensureSlots(self.vm, self.slots + 2);
             setSlotHandle(self.vm, 0, self.class_handle);
             // Process out our arguments
+            // TODO: Chop this crap up into separate fns
             inline for(arg_types) |v,i| {
                 switch(@typeInfo(v)) {
                     .Int => setSlotDouble(self.vm, i + 1, @intToFloat(f64,args[i])),
@@ -455,55 +457,38 @@ pub fn MethodCallHandle(
                         //String, or slice of strings or values (Wren list)
                         comptime var T = ptr.child;
                         comptime var is_str = util.isCString(v) or std.meta.trait.isZigString(v);
-                        comptime var is_int = std.meta.trait.isIntegral(T);
-                        comptime var is_astr = util.isCString(T) or std.meta.trait.isZigString(T);
-                        comptime var is_bool = (T == bool);
                         if(ptr.size == .Slice) {
                             if(is_str) {
-                                setSlotString(self.vm,i + 1,args[i]);
+                                setSlotAuto(self.vm,v,i + 1,args[i]);
                             } else {
                                 setSlotNewList(self.vm,i + 1);
                                 inline for(args[i]) |vx,ix| {
-                                    if(is_astr) {
-                                        setSlotString(self.vm,i + 2,vx);
-                                    } else if(is_bool) {
-                                        setSlotBool(self.vm,i + 2,vx);
-                                    } else if(is_int) {
-                                        setSlotDouble(self.vm,i + 2, @intToFloat(f64,vx));
-                                    } else {
-                                        setSlotDouble(self.vm,i + 2, @floatCast(f64,vx));
-                                    }
+                                    setSlotAuto(self.vm,T,i + 2,vx);
                                     insertInList(self.vm,i + 1,@intCast(c_int,ix),i + 2);
                                 }
                             }
                         }
                     },
-                    .Struct => |ptr| {
-                        if(!ptr.is_tuple) {
+                    .Struct => |st| {
+                        if(!st.is_tuple) {
                             // HASHMAPS HERE
                             if(!util.isHashMap(v)) return error.UnsupportedParameterType;
-                            //const kv_type = util.getHashMapTypes(v);
-
-                            return error.UnimplementedParameterType;
-                            // construct the map
-                        } 
-                        // Tuples, used to pass multi-type Wren lists
-                        setSlotNewList(self.vm,i + 1);
-                        inline for(args[i]) |vt,it| { //tuple index
-                            comptime var T = @TypeOf(vt);
-                            comptime var is_str = util.isCString(T) or std.meta.trait.isZigString(T);
-                            comptime var is_int = std.meta.trait.isIntegral(T);
-                            comptime var is_bool = (T == bool);
-                            if(is_str) {
-                                setSlotString(self.vm,i + 2,vt);
-                            } else if(is_bool) {
-                                setSlotBool(self.vm,i + 2,vt);
-                            } else if(is_int) {
-                                setSlotDouble(self.vm,i + 2, @intToFloat(f64,vt));
-                            } else {
-                                setSlotDouble(self.vm,i + 2, @floatCast(f64,vt));
+                            const kv_type = util.getHashMapTypes(v);
+                            setSlotNewMap(self.vm,i+1);
+                            var it = args[i].iterator();
+                            while(it.next()) |entry| {
+                                setSlotAuto(self.vm,kv_type.key,i + 2,entry.key_ptr.*);
+                                setSlotAuto(self.vm,kv_type.value,i + 3,entry.value_ptr.*);
+                                setMapValue(self.vm,i + 1,i + 2,i + 3);
                             }
-                            insertInList(self.vm,i + 1,@intCast(c_int,it),i + 2);
+                        } else {
+                            // Tuples, used to pass multi-type Wren lists
+                            setSlotNewList(self.vm,i + 1);
+                            inline for(args[i]) |vt,it| { //tuple index
+                                comptime var T = @TypeOf(vt);
+                                setSlotAuto(self.vm,T,i + 2,vt);
+                                insertInList(self.vm,i + 1,@intCast(c_int,it),i + 2);
+                            }
                         }
                     },
                     else => return error.UnsupportedParameterType,
@@ -525,13 +510,10 @@ pub fn MethodCallHandle(
                 .Pointer => |ptr| {
                     comptime var T = ptr.child;
                     comptime var is_str = util.isCString(ret_type) or std.meta.trait.isZigString(ret_type);
-                    comptime var is_int = std.meta.trait.isIntegral(T);
-                    comptime var is_astr = util.isCString(T) or std.meta.trait.isZigString(T);
-                    comptime var is_bool = (T == bool);
                     if(ptr.size == .Slice) {
                         // String
                         if(is_str) {
-                            return std.mem.span(getSlotString(self.vm,0));
+                            return getSlotAuto(self.vm,ret_type,0);
                         } 
                         // Single-type list(as slice)
                         ensureSlots(self.vm,2);
@@ -539,66 +521,45 @@ pub fn MethodCallHandle(
                         var list = std.ArrayList(T).init(data.allocator);
                         while(idx < getListCount(self.vm,0)) : (idx += 1) {
                             getListElement(self.vm,0,idx,1);
-                            if(is_astr) { // C String
-                                try list.append(std.mem.span(getSlotString(self.vm,1)));
-                            } else if(is_bool) { // Number
-                                // Bool
-                                try list.append(getSlotBool(self.vm,1));
-                            } else if(is_int) { // Number
-                                // Int
-                                try list.append(@floatToInt(T,getSlotDouble(self.vm,1)));
-                            } else {
-                                // Float
-                                try list.append(@floatCast(T,getSlotDouble(self.vm,1)));
-                            }
+                            try list.append(getSlotAuto(self.vm,T,1));
                         }
                         return list.toOwnedSlice();
                     }
                 },    
-                .Struct => {
-                    if(!util.isHashMap(ret_type)) return error.UnsupportedParameterType;
-                    ensureSlots(self.vm,3);
+                .Struct => |st| {
+                    if (!st.is_tuple) {
+                        // Hashmap
+                        if(!util.isHashMap(ret_type)) return error.UnsupportedParameterType;
 
-                    const kv_type = util.getHashMapTypes(ret_type);
-                    comptime var key_str = util.isCString(kv_type.key) or std.meta.trait.isZigString(kv_type.key);
-                    comptime var key_int = std.meta.trait.isIntegral(kv_type.key);
-                    comptime var key_bool = (kv_type.key == bool);
-                    
-                    comptime var val_str = util.isCString(kv_type.value) or std.meta.trait.isZigString(kv_type.value);
-                    comptime var val_int = std.meta.trait.isIntegral(kv_type.value);
-                    comptime var val_bool = (kv_type.value == bool);
-
-                    var map = ret_type.init(data.allocator);
-                    
-                    var idx:c_int = 0;
-                    var mc = getMapCount(self.vm,0);
-                    std.debug.print("CT: {any}",.{mc});
-                    while(idx < mc) : (idx += 1) {
-                        getMapElement(self.vm,0,idx,1,2);
-                        std.debug.print(" >> {any}",.{std.mem.span(getSlotString(self.vm,1))});
-                        std.debug.print(" >> {any}\n",.{std.mem.span(getSlotString(self.vm,2))});
-                        var val:kv_type.value = undefined;
-                        if(val_str) {
-                            val = std.mem.span(getSlotString(self.vm,2));
-                        } else if(val_bool) {
-                            val = getSlotBool(self.vm,2);
-                        } else if (val_int) {
-                            val = @floatToInt(kv_type.value,getSlotDouble(self.vm,2));
-                        } else {
-                            val = @floatCast(kv_type.value,getSlotDouble(self.vm,2));
+                        const kv_type = util.getHashMapTypes(ret_type);
+                        var map = ret_type.init(data.allocator);
+                        
+                        ensureSlots(self.vm,3);
+                        
+                        var idx:c_int = 0;
+                        var mc = getMapCount(self.vm,0);
+                        while(idx < mc) : (idx += 1) {
+                            getMapElement(self.vm,0,idx,1,2);
+                            try map.put(getSlotAuto(self.vm,kv_type.key,1),
+                                        getSlotAuto(self.vm,kv_type.value,2));
                         }
+                        return map;
+                    } else {
+                        //Tuple
+                        // Not sure how to build the data in runtime?
+                        //std.meta.Tuple
 
-                        if(key_str) {
-                            try map.put(std.mem.span(getSlotString(self.vm,1)),val);
-                        } else if(key_bool) {
-                            try map.put(getSlotBool(self.vm,1),val);
-                        } else if(key_int) {
-                            try map.put(@floatToInt(kv_type.key,getSlotDouble(self.vm,1)),val);
-                        } else {
-                            try map.put(@floatCast(kv_type.key,getSlotDouble(self.vm,1)),val);
+                        // Single-type list(as slice)
+                        ensureSlots(self.vm,2);
+                        var idx:c_int = 0;
+                        var list = std.ArrayList(T).init(data.allocator);
+                        while(idx < getListCount(self.vm,0)) : (idx += 1) {
+                            getListElement(self.vm,0,idx,1);
+                            try list.append(getSlotAuto(self.vm,T,1));
                         }
+                        return list.toOwnedSlice();
+
                     }
-                    return map;
                 },              
                 // Tuple for diff value lists?
                 else => return error.UnsupportedReturnType,
@@ -609,3 +570,43 @@ pub fn MethodCallHandle(
     };
 
 }
+
+/// Replacement for setSlot* for the basic value types
+/// Does not handle lists or maps
+pub fn setSlotAuto(vm:?*VM,comptime T:type,slot:c_int,value:anytype) void {
+    comptime var is_str = std.meta.trait.isZigString(T);
+    comptime var is_cstr = util.isCString(T);
+    comptime var is_int = std.meta.trait.isIntegral(T);
+    comptime var is_bool = (T == bool);
+    if(is_str) {
+        // TODO: Convert this fn to an error union
+        var cvt = data.allocator.dupeZ(u8,value) catch unreachable;
+        setSlotString(vm,slot,cvt);
+    } else if(is_cstr) {
+        setSlotString(vm,slot,value);
+    } else if(is_bool) {
+        setSlotBool(vm,slot,value);
+    } else if(is_int) {
+        setSlotDouble(vm,slot,@intToFloat(f64,value));
+    } else {
+        setSlotDouble(vm,slot,@floatCast(f64,value));
+    }
+}
+
+/// Replacement for getSlot* for the basic value types
+/// Does not handle lists or maps
+pub fn getSlotAuto(vm:?*VM,comptime T:type,slot:c_int) T {
+    comptime var is_str = util.isCString(T) or std.meta.trait.isZigString(T);
+    comptime var is_int = std.meta.trait.isIntegral(T);
+    comptime var is_bool = (T == bool);
+    if(is_str) {
+        return std.mem.span(getSlotString(vm,slot));
+    } else if(is_bool) {
+        return getSlotBool(vm,slot);
+    } else if(is_int) {
+        return @floatToInt(T,getSlotDouble(vm,slot));
+    } else {
+        return @floatCast(T,getSlotDouble(vm,slot));
+    }    
+}
+
