@@ -44,16 +44,29 @@ See example/example_build.zig for details.
 
 ## Usage
 
-Add this import to the top of whatever source file you will use it in:
+Very basic usage example:
 ```zig
+const std = @import("std");
 const wren = @import("wren");
+
+pub fn main() !void {
+    wren.init(std.heap.c_allocator);
+    defer wren.deinit();
+    
+    var config = wren.util.defaultConfig();
+    const vm = wren.newVM(&config);
+    defer wren.freeVM(vm);
+    
+    try wren.util.run(vm,"main",
+        \\ System.print("Hello from Wren!")
+    );
+}
 ```
-and you are ready to go!
 
-There are lots of examples in the `examples/` directory that cover almost everything needed for embedding.  Check `basic.zig` to get started.
+There are lots of other examples in the `example/` directory that cover most use cases. 
 
-The example file `all_the_new_things.zig` is all the separate examples squished into one file, it doesn't have anything new.
+The example file `everything.zig` is all the separate examples squished into one file, it doesn't have anything new.
 
-There is also `all_the_old_things.zig` which is based on the C implementation, it shows how to use it in a lower-level manner, or what to do if you need custom callbacks for any of the Wren externals.  
+There is also `all_the_old_things.zig` which is based on the C-style implementation, it shows how to use it in a lower-level manner, or what to do if you need custom callbacks for any of the Wren externals.  
 
 Aside from the above files, Wren's [embedding guide](https://wren.io/embedding/) has everything else you need for any topics not covered by the examples.
