@@ -23,8 +23,8 @@ pub fn main() anyerror!void {
     defer wren.deinit();
 
     // Set up a VM configuration using the supplied default bindings
-    var config:wren.Configuration = undefined;
-    wren.util.initDefaultConfig(&config);
+    // You can override the bindings after calling this to change them
+    var config = wren.util.defaultConfig();
 
     // Create two VMs from our config
     const vm1 = wren.newVM(&config);

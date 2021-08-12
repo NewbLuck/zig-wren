@@ -1,7 +1,7 @@
 const std = @import("std");
 usingnamespace @import("wren.zig");
 
-/// Returns the basic Wren default configuration with the basic handlers 
+/// Sets the basic Wren default configuration with the basic handlers 
 /// defined in this library 
 pub fn initDefaultConfig (configuration:[*c]Configuration) void {
     initConfiguration(configuration);
@@ -10,6 +10,14 @@ pub fn initDefaultConfig (configuration:[*c]Configuration) void {
     configuration.*.bindForeignMethodFn = bindings.foreignMethodFn;
     configuration.*.bindForeignClassFn = bindings.bindForeignClassFn;
     configuration.*.loadModuleFn = bindings.loadModuleFn;        
+}
+
+/// Returns a basic configuration with the default handlers.
+/// See initDefaultConfig for setting an existing configuration.
+pub fn defaultConfig () Configuration {
+    var config:Configuration = undefined;    
+    initDefaultConfig(&config);
+    return config;
 }
 
 /// Tests if a C string matches a Zig string

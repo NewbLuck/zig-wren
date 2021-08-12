@@ -14,6 +14,7 @@ pub fn build(b: *std.build.Builder) void {
 
     const example_defs = &[_][2][]const u8 {
         [_][]const u8{ "everything","example/everything.zig" },
+        [_][]const u8{ "basic","example/basic.zig" },
         [_][]const u8{ "syntax_error","example/syntax_error.zig" },
         [_][]const u8{ "imports","example/imports.zig" },
         [_][]const u8{ "foreign_method","example/foreign_method.zig" },
