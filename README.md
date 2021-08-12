@@ -7,12 +7,13 @@ It provides a mid-level wrap around the Wren bindings, as well as exposes the C 
 This supports multiple concurrent VMs, as well as passing all Wren data types to and from Zig (including maps and lists).  
 The only exception to this is receiving to Zig a multi-typed list from Wren due to the way tuples work in Zig, I am not big brain enough to figure it out.
 
+This uses the Wren-supplied allocators, I plan to eventually add support for custom allocators.
+
 The optional add-ons for random and meta are included and working fine (from limited testing).
 
 ## Adding to your project with zigmod  
 (**Thanks to [@nektro](https://github.com/nektro) for providing the zigmod integration!**)
 
----
 Add this into your main project's zig.mod file:
 ```yml
 dependencies:
@@ -49,7 +50,7 @@ const wren = @import("wren");
 ```
 and you are ready to go!
 
-There are lots of examples in the `examples/` directory that covers almost everything needed for embedding.  Check `basic.zig` to get started.
+There are lots of examples in the `examples/` directory that cover almost everything needed for embedding.  Check `basic.zig` to get started.
 
 The example file `all_the_new_things.zig` is all the separate examples squished into one file, it doesn't have anything new.
 
