@@ -18,7 +18,7 @@ pub fn registerMethod(
             .className = className,
             .signature = signature,
             .isStatic = isStatic,
-            .ptr = ptr,
+            .ptr = @ptrCast(ForeignMethodFnC,ptr),
         }) catch return error.FailedToRegisterMethod;
     } else return error.NullVmPtr;
 }
@@ -30,7 +30,7 @@ pub fn findMethod (
     className:[]const u8,
     signature:[]const u8,
     isStatic:bool,
-) !ForeignMethodFn {
+) !ForeignMethodFnC {
     // TODO: Iterator vs direct array iteration?
     // TODO: Change this to some kind of hash-based structure, maybe hashmap of array lists
     //       keyed on something like a concatenation of the params?  Might have faster lookup
@@ -52,7 +52,7 @@ pub fn findMethod (
 }   
 
 /// Registers our Zig-backed struct so it can be used/instantiated from Wren
-/// Requires 2 Zig functions, one aclled on creation, and one on destruction.
+/// Requires 2 Zig functions, one called on creation, and one on destruction.
 pub fn registerClass(
     vm:?*VM,
     module:[]const u8,
@@ -65,8 +65,8 @@ pub fn registerClass(
             .module = module,
             .className = className,
             .methods = ForeignClassMethods {
-                .allocate = allocate_fn,
-                .finalize = finalize_fn,
+                .allocate = @ptrCast(AllocateFnSigC,allocate_fn),
+                .finalize = @ptrCast(FinalizeFnSigC,finalize_fn),
             }
         }) catch return error.FailedToRegisterClass;
     } else return error.NullVmPtr;

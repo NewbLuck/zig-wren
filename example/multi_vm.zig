@@ -4,14 +4,14 @@ const wren = @import("wren");
 pub var alloc = std.testing.allocator;
 
 // A function we will call from Wren
-pub fn mathAddOne (vm:?*wren.VM) callconv(.C) void {
+pub fn mathAddOne (vm:?*wren.VM) void {
     var a:f64 = wren.getSlotAuto(vm, f64, 1);
     var b:f64 = wren.getSlotAuto(vm, f64, 2);
     wren.setSlotDouble(vm, 0, a + b);
 }
 
 // A slightly different function we will call from Wren
-pub fn mathAddTwo (vm:?*wren.VM) callconv(.C) void {
+pub fn mathAddTwo (vm:?*wren.VM) void {
     var a:f64 = wren.getSlotAuto(vm, f64, 1);
     var b:f64 = wren.getSlotAuto(vm, f64, 2);
     wren.setSlotAuto(vm, 0, a + b + b + a);

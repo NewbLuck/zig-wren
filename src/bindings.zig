@@ -9,7 +9,7 @@ pub fn foreignMethodFn(
     className:CString,
     isStatic:bool,
     signature:CString
-) callconv(.C) ForeignMethodFn {
+) callconv(.C) ForeignMethodFnC {
     if(util.matches(module,"meta")) {
         return metaBindForeignMethod(vm,className,isStatic,signature);
     }

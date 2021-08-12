@@ -48,9 +48,9 @@ pub extern fn wrenSetUserData(vm: ?*VM, userData: ?*c_void) void;
 
 // Meta extension
 pub extern fn wrenMetaSource() [*c]const u8;
-pub extern fn wrenMetaBindForeignMethod(vm: ?*VM, className: [*c]const u8, isStatic: bool, signature: [*c]const u8) ForeignMethodFn;
+pub extern fn wrenMetaBindForeignMethod(vm: ?*VM, className: [*c]const u8, isStatic: bool, signature: [*c]const u8) ForeignMethodFnC;
 
 // Random extension
 pub extern fn wrenRandomSource() [*c]const u8;
 pub extern fn wrenRandomBindForeignClass(vm: ?*VM, module: [*c]const u8, className: [*c]const u8) ForeignClassMethods;
-pub extern fn wrenRandomBindForeignMethod(vm: ?*VM, className: [*c]const u8, isStatic: bool, signature: [*c]const u8) ForeignMethodFn;
+pub extern fn wrenRandomBindForeignMethod(vm: ?*VM, className: [*c]const u8, isStatic: bool, signature: [*c]const u8) ForeignMethodFnC;

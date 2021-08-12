@@ -70,55 +70,95 @@ pub fn main() anyerror!void {
     // Pass the module/class/method sig, then argument type tuple, followed by return type.
     // .init() takes the vm handle to the vm that this will be running on.
     // To call the method, run [methHand].callMethod, passing in a tuple of the argument values.
-    var wm = try wren.MethodCallHandle("main","TestClass","doubleUp(_)",.{usize},usize).init(vm);
+    var wm = try wren.MethodCallHandle(
+        "main","TestClass","doubleUp(_)",
+        .{usize},
+        usize
+    ).init(vm);
     defer wm.deinit();
     needs_adding = try wm.callMethod(.{needs_adding});
     std.debug.print("Int->Int: {}\n",.{needs_adding});
 
-    var wm2 = try wren.MethodCallHandle("main","TestClass","text(_)",.{[]const u8},[]const u8).init(vm);
+    var wm2 = try wren.MethodCallHandle(
+        "main","TestClass","text(_)",
+        .{[]const u8},
+        []const u8
+    ).init(vm);
     defer wm2.deinit();
     var ostr = try wm2.callMethod(.{"Input "});
     std.debug.print("String->String: {s}\n",.{ostr});
 
-    var wm3 = try wren.MethodCallHandle("main","TestClass","splat(_,_)",.{i32,i32},[]i32).init(vm);
+    var wm3 = try wren.MethodCallHandle(
+        "main","TestClass","splat(_,_)",
+        .{i32,i32},
+        []i32
+    ).init(vm);
     defer wm3.deinit();
     var oslc = try wm3.callMethod(.{3,5});
     std.debug.print("IntArray->Slice: {any}\n",.{oslc});
 
-    var wm4 = try wren.MethodCallHandle("main","TestClass","addArray(_)",.{[]u32},i32).init(vm);
+    var wm4 = try wren.MethodCallHandle(
+        "main","TestClass","addArray(_)",
+        .{[]u32},
+        i32
+    ).init(vm);
     defer wm4.deinit();
     var oarr = try wm4.callMethod(.{ .{3,5} });
     std.debug.print("IntSlice->Int: {any}\n",.{oarr});
 
-    var wm5 = try wren.MethodCallHandle("main","TestClass","addStr(_,_)",.{[]const u8,[]const u8},[]const []const u8).init(vm);
+    var wm5 = try wren.MethodCallHandle(
+        "main","TestClass","addStr(_,_)",
+        .{[]const u8,[]const u8},
+        []const []const u8
+    ).init(vm);
     defer wm5.deinit();
     var oast = try wm5.callMethod(.{"abc","def"});
     std.debug.print("String->StringSlice: {s}\n",.{oast});
 
-    var wm6 = try wren.MethodCallHandle("main","TestClass","fArr(_,_)",.{f32,i32},[]f32).init(vm);
+    var wm6 = try wren.MethodCallHandle(
+        "main","TestClass","fArr(_,_)",
+        .{f32,i32},
+        []f32
+    ).init(vm);
     defer wm6.deinit();
     var ofsp = try wm6.callMethod(.{2.34,5});
     std.debug.print("Float,Int->FloatSlice: {any}\n",.{ofsp});
 
-    var wm7 = try wren.MethodCallHandle("main","TestClass","notMe(_)",.{bool},bool).init(vm);
+    var wm7 = try wren.MethodCallHandle(
+        "main","TestClass","notMe(_)",
+        .{bool},
+        bool
+    ).init(vm);
     defer wm7.deinit();
     var oboo = try wm7.callMethod(.{false});
     std.debug.print("Bool->Bool: {any}\n",.{oboo});
 
-    var wm8 = try wren.MethodCallHandle("main","TestClass","blah(_)",.{[]f32},[]f32).init(vm);
+    var wm8 = try wren.MethodCallHandle(
+        "main","TestClass","blah(_)",
+        .{[]f32},
+        []f32
+    ).init(vm);
     defer wm8.deinit();
     var obla = try wm8.callMethod(.{ .{2.34,2.34} });
     std.debug.print("FloatSlice->FloatSlice: {any}\n",.{obla});
 
-    var wm9 = try wren.MethodCallHandle("main","TestClass","tup(_,_)",.{ std.meta.Tuple(&[_]type{[]const u8,i32}),i32 },i32).init(vm);
+    var wm9 = try wren.MethodCallHandle(
+        "main","TestClass","tup(_,_)",
+        .{ std.meta.Tuple(&[_]type{[]const u8,i32}),i32 },
+        i32
+    ).init(vm);
     defer wm9.deinit();
     var otup = try wm9.callMethod(.{ .{"poo",3}, 39 });
     std.debug.print("Str,Int Tuple->Int: {any}\n",.{otup});
 
-    var wm10 = try wren.MethodCallHandle("main","TestClass","fmap(_)",.{ std.StringHashMap([]const u8) },std.StringHashMap([]const u8)).init(vm);
+    var wm10 = try wren.MethodCallHandle(
+        "main","TestClass","fmap(_)",
+        .{ std.StringHashMap([]const u8) },
+        std.StringHashMap([]const u8)
+    ).init(vm);
     defer wm10.deinit();
     var nmap = std.StringHashMap([]const u8).init(std.testing.allocator);
-    defer nmap.deinit();
+    defer nmap.deinit();    
     nmap.put("Init1","Zig") catch unreachable;
     nmap.put("Init2","Zig") catch unreachable;
     var omap = try wm10.callMethod(.{ nmap });
@@ -128,5 +168,4 @@ pub fn main() anyerror!void {
         std.debug.print("  >> {s}: {s}\n",.{entry.key_ptr.*,entry.value_ptr.*});
     }
 
-    
 }

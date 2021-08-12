@@ -10,7 +10,7 @@ pub var alloc = std.testing.allocator;
 // This will be a foreign class in Wren
 pub const Point = struct {
     size:f64 = 0,
-    pub fn setSize (vm:?*wren.VM) callconv(.C) void {
+    pub fn setSize (vm:?*wren.VM) void {
         // Get the Wren class handle which holds our Zig instance memory
         if(wren.getSlotForeign(vm, 0)) |ptr| {
             // Convert slot 0 memory back into the Zig class
@@ -35,7 +35,7 @@ pub const Point = struct {
 // A pair of allocate and finalize functions to keep Wren and Zig in sync
 // when using the Point class above.
 // Allocate is called on Wren creation and finalize on Wren destruction.
-pub fn pointAllocate(vm:?*wren.VM) callconv(.C) void {
+pub fn pointAllocate(vm:?*wren.VM) void {
     std.debug.print(" [+] ALLOC Point\n",.{});
     
     // Tell Wren how many bytes we need for the Zig class instance
@@ -53,21 +53,21 @@ pub fn pointAllocate(vm:?*wren.VM) callconv(.C) void {
     
     std.debug.print(" [+] ALLOC Point Done\n",.{});
 }
-pub fn pointFinalize(data:?*c_void) callconv(.C) void {
+pub fn pointFinalize(data:?*c_void) void {
     _=data;
     std.debug.print(" [+] Finalize Point\n",.{});
     // Do whatever cleanup is needed here, deinits etc
 }
 
 // A function we will call from Wren
-pub fn mathAdd (vm:?*wren.VM) callconv(.C) void {
+pub fn mathAdd (vm:?*wren.VM) void {
     var a:f64 = wren.getSlotAuto(vm, f64, 1);
     var b:f64 = wren.getSlotAuto(vm, f64, 2);
     wren.setSlotDouble(vm, 0, a + b);
 }
 
 // A slightly different function we will call from Wren
-pub fn mathAddSec (vm:?*wren.VM) callconv(.C) void {
+pub fn mathAddSec (vm:?*wren.VM) void {
     var a:f64 = wren.getSlotAuto(vm, f64, 1);
     var b:f64 = wren.getSlotAuto(vm, f64, 2);
     wren.setSlotAuto(vm, 0, a + b + b + a);

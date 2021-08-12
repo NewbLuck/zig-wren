@@ -152,7 +152,7 @@ pub fn bindForeignMethodFn(
     className:[*c]const u8,
     isStatic:bool,
     signature:[*c]const u8
-) callconv(.C) wren.ForeignMethodFn {
+) callconv(.C) wren.ForeignMethodFnC {
     _=vm;
     std.debug.print(" [+] Looking up method {s}:{s}.{s}\n",.{module,className,signature});
     if (wren.util.matches(module,"main")) {

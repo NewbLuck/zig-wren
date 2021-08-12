@@ -55,8 +55,10 @@ pub const Handle = c.WrenHandle;
 /// - To free memory, [memory] will be the memory to free and [newSize] will be
 ///   zero. It should return NULL.
 pub const ReallocateFn = c.WrenReallocateFn;
-/// A function callable from Wren code, but implemented in C.
-pub const ForeignMethodFn = c.WrenForeignMethodFn;
+/// A function callable from Wren code, but implemented in C. 
+pub const ForeignMethodFnC = c.WrenForeignMethodFn;
+/// A Zig-signatured version of ForeignMethodFnC for convenience
+pub const ForeignMethodFn = fn (?*VM) void;
 /// A finalizer function for freeing resources owned by an instance of a foreign
 /// class. Unlike most foreign methods, finalizers do not have access to the VM
 /// and should not interact with it since it's in the middle of a garbage
@@ -329,7 +331,7 @@ pub const ForeignMethod = struct {
     className:[]const u8,
     signature:[]const u8,
     isStatic:bool,
-    ptr:ForeignMethodFn,
+    ptr:ForeignMethodFnC,
 };
 
 pub const ForeignClass = struct {
@@ -338,8 +340,12 @@ pub const ForeignClass = struct {
     methods:ForeignClassMethods,
 };
 
-pub const AllocateFnSig = (?fn (?*VM) callconv(.C) void);
-pub const FinalizeFnSig = (?fn (?*c_void) callconv(.C) void);
+pub const AllocateFnSigC = (?fn (?*VM) callconv(.C) void);
+pub const FinalizeFnSigC = (?fn (?*c_void) callconv(.C) void);
+// Zig-style signatures, pointer casted into the C style when stored
+pub const AllocateFnSig = (?fn (?*VM) void);
+pub const FinalizeFnSig = (?fn (?*c_void) void);
+
 
 /// Data type returned from slot-checking functions
 pub const DataType = enum(u32) {
