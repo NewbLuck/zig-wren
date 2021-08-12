@@ -405,24 +405,7 @@ pub fn setSlotAutoTyped(vm:?*VM,comptime T:type,slot:c_int,value:anytype) void {
 /// type of data that Wren uses.  
 /// Does not handle lists or maps.
 pub fn setSlotAuto(vm:?*VM,slot:c_int,value:anytype) void {
-    comptime var T = @TypeOf(value);
-    comptime var is_str = std.meta.trait.isZigString(T);
-    comptime var is_cstr = util.isCString(T);
-    comptime var is_int = std.meta.trait.isIntegral(T);
-    comptime var is_bool = (T == bool);
-    if(is_str) {
-        // TODO: Convert this fn to an error union
-        var cvt = data.allocator.dupeZ(u8,value) catch unreachable;
-        setSlotString(vm,slot,cvt);
-    } else if(is_cstr) {
-        setSlotString(vm,slot,value);
-    } else if(is_bool) {
-        setSlotBool(vm,slot,value);
-    } else if(is_int) {
-        setSlotDouble(vm,slot,@intToFloat(f64,value));
-    } else {
-        setSlotDouble(vm,slot,@floatCast(f64,value));
-    }
+    setSlotAutoTyped(vm,@TypeOf(value),slot,value);
 }
 
 
